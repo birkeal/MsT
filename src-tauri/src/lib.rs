@@ -45,12 +45,10 @@ pub fn run() {
                 .item(&quit)
                 .build()?;
 
-            // Create tray icon (use a default icon — will be replaced with a proper one)
+            // Create tray icon (solid accent color placeholder — replace with proper icon later)
+            let icon_rgba: Vec<u8> = vec![89, 180, 250, 255].repeat(32 * 32);
             let _tray = TrayIconBuilder::new()
-                .icon(Image::from_bytes(include_bytes!("../icons/icon.png")).unwrap_or_else(|_| {
-                    // Fallback: 1x1 pixel transparent PNG
-                    Image::new(&[0, 0, 0, 0], 1, 1)
-                }))
+                .icon(Image::new_owned(icon_rgba, 32, 32))
                 .menu(&menu)
                 .tooltip("MisterT - Translation Tool")
                 .on_menu_event(move |app, event| match event.id().as_ref() {

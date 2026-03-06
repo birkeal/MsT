@@ -1,0 +1,6 @@
+[build]
+jobs = 2
+
+[profile.dev]
+opt-level = 0
+debug = 1

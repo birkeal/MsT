@@ -1,4 +1,4 @@
-use crate::error::MisterTError;
+use crate::error::MstError;
 use super::{PlatformState, WindowHandle};
 
 use windows::Win32::Foundation::HWND;
@@ -12,10 +12,10 @@ use windows::Win32::UI::WindowsAndMessaging::{
 const VK_CONTROL: VIRTUAL_KEY = VIRTUAL_KEY(0x11);
 const VK_V: VIRTUAL_KEY = VIRTUAL_KEY(0x56);
 
-pub fn save_foreground_window(state: &PlatformState) -> Result<(), MisterTError> {
+pub fn save_foreground_window(state: &PlatformState) -> Result<(), MstError> {
     let hwnd = unsafe { GetForegroundWindow() };
     if hwnd.0.is_null() {
-        return Err(MisterTError::Injection("No foreground window found".into()));
+        return Err(MstError::Injection("No foreground window found".into()));
     }
 
     let mut saved = state.saved_window.lock().unwrap();
@@ -23,7 +23,7 @@ pub fn save_foreground_window(state: &PlatformState) -> Result<(), MisterTError>
     Ok(())
 }
 
-pub fn restore_foreground_window(state: &PlatformState) -> Result<(), MisterTError> {
+pub fn restore_foreground_window(state: &PlatformState) -> Result<(), MstError> {
     let saved = state.saved_window.lock().unwrap();
     match saved.as_ref() {
         Some(WindowHandle::Windows(handle)) => {
@@ -33,11 +33,11 @@ pub fn restore_foreground_window(state: &PlatformState) -> Result<(), MisterTErr
             }
             Ok(())
         }
-        _ => Err(MisterTError::Injection("No saved window to restore".into())),
+        _ => Err(MstError::Injection("No saved window to restore".into())),
     }
 }
 
-pub fn simulate_paste() -> Result<(), MisterTError> {
+pub fn simulate_paste() -> Result<(), MstError> {
     let inputs = [
         INPUT {
             r#type: INPUT_KEYBOARD,
@@ -81,7 +81,7 @@ pub fn simulate_paste() -> Result<(), MisterTError> {
 
     let sent = unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
     if sent != 4 {
-        return Err(MisterTError::Injection("SendInput failed".into()));
+        return Err(MstError::Injection("SendInput failed".into()));
     }
 
     Ok(())

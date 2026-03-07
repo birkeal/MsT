@@ -1,0 +1,8 @@
+{
+  "translation_type": "ai",
+  "service_url": "https://generativelanguage.googleapis.com/v1beta/models",
+  "api_key": "AIza...",
+  "model": "gemini-2.0-flash",
+  "default_source_language": "de",
+  "default_target_language": "en"
+}

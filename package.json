@@ -1,5 +1,5 @@
 {
-  "name": "mister-t",
+  "name": "mst",
   "version": "0.1.0",
   "description": "Cross-platform translation tool with global hotkey and text injection",
   "scripts": {

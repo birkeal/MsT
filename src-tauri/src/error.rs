@@ -1,7 +1,7 @@
 use serde::Serialize;
 
 #[derive(Debug, thiserror::Error)]
-pub enum MisterTError {
+pub enum MstError {
     #[error("Translation error: {0}")]
     Translation(String),
 
@@ -21,7 +21,7 @@ pub enum MisterTError {
     Json(#[from] serde_json::Error),
 }
 
-impl Serialize for MisterTError {
+impl Serialize for MstError {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,

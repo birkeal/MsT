@@ -122,6 +122,8 @@ body {
 
 .status-msg.error {
   color: #f38ba8;
+  user-select: text;
+  cursor: text;
 }
 
 #results::-webkit-scrollbar {

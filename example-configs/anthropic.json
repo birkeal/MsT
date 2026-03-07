@@ -1,0 +1,8 @@
+{
+  "translation_type": "ai",
+  "service_url": "https://api.anthropic.com/v1/messages",
+  "api_key": "sk-ant-...",
+  "model": "claude-sonnet-4-20250514",
+  "default_source_language": "de",
+  "default_target_language": "en"
+}

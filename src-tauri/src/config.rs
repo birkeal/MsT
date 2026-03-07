@@ -2,29 +2,33 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
-use crate::error::MisterTError;
+use crate::error::MstError;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum ProviderType {
-    LibreTranslate,
-    DeepL,
+pub enum TranslationType {
+    Simple,
+    Ai,
 }
 
-impl Default for ProviderType {
+impl Default for TranslationType {
     fn default() -> Self {
-        Self::LibreTranslate
+        Self::Simple
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
-    #[serde(default = "default_provider")]
-    pub provider: ProviderType,
-    #[serde(default = "default_libre_url")]
-    pub libre_translate_url: String,
     #[serde(default)]
-    pub deepl_api_key: Option<String>,
+    pub translation_type: TranslationType,
+    #[serde(default = "default_service_url")]
+    pub service_url: String,
+    #[serde(default)]
+    pub api_key: Option<String>,
+    #[serde(default)]
+    pub model: Option<String>,
+    #[serde(default)]
+    pub prompt: Option<String>,
     #[serde(default = "default_hotkey")]
     pub hotkey: String,
     #[serde(default = "default_target_lang")]
@@ -35,20 +39,17 @@ pub struct AppConfig {
     pub injection_delay_ms: u64,
 }
 
-fn default_provider() -> ProviderType {
-    ProviderType::LibreTranslate
-}
-fn default_libre_url() -> String {
-    "https://libretranslate.com".into()
+fn default_service_url() -> String {
+    "https://api.mymemory.translated.net/get".into()
 }
 fn default_hotkey() -> String {
     "CmdOrCtrl+Alt+T".into()
 }
 fn default_target_lang() -> String {
-    "de".into()
+    "en".into()
 }
 fn default_source_lang() -> String {
-    "auto".into()
+    "de".into()
 }
 fn default_injection_delay() -> u64 {
     100
@@ -57,9 +58,11 @@ fn default_injection_delay() -> u64 {
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            provider: default_provider(),
-            libre_translate_url: default_libre_url(),
-            deepl_api_key: None,
+            translation_type: TranslationType::default(),
+            service_url: default_service_url(),
+            api_key: None,
+            model: None,
+            prompt: None,
             hotkey: default_hotkey(),
             default_target_language: default_target_lang(),
             default_source_language: default_source_lang(),
@@ -72,14 +75,14 @@ impl AppConfig {
     pub fn config_dir() -> PathBuf {
         dirs::config_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join("mister-t")
+            .join("mst")
     }
 
     pub fn config_path() -> PathBuf {
         Self::config_dir().join("config.json")
     }
 
-    pub fn load() -> Result<Self, MisterTError> {
+    pub fn load() -> Result<Self, MstError> {
         let path = Self::config_path();
         if path.exists() {
             let data = fs::read_to_string(&path)?;
@@ -92,7 +95,7 @@ impl AppConfig {
         }
     }
 
-    pub fn save(&self) -> Result<(), MisterTError> {
+    pub fn save(&self) -> Result<(), MstError> {
         let dir = Self::config_dir();
         fs::create_dir_all(&dir)?;
         let data = serde_json::to_string_pretty(self)?;

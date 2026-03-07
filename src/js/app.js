@@ -7,6 +7,16 @@ const results = document.getElementById('results');
 
 let selectedIndex = -1;
 let currentResults = [];
+let sourceLanguage = 'de';
+let lastTranslatedText = '';
+
+// Load source language from config
+invoke('load_settings').then((config) => {
+  sourceLanguage = config.default_source_language || 'de';
+  if (config.default_target_language) {
+    langSelect.value = config.default_target_language;
+  }
+});
 
 // Focus input when window becomes visible
 const currentWindow = getCurrentWindow();
@@ -16,6 +26,7 @@ currentWindow.onFocusChanged(({ payload: focused }) => {
     results.innerHTML = '';
     currentResults = [];
     selectedIndex = -1;
+    lastTranslatedText = '';
     input.focus();
   }
 });
@@ -40,9 +51,13 @@ input.addEventListener('keydown', (e) => {
 
   if (e.key === 'Enter') {
     e.preventDefault();
-    if (selectedIndex >= 0 && currentResults[selectedIndex]) {
+    const currentText = input.value.trim();
+    if (currentText && currentText !== lastTranslatedText) {
+      // Text changed since last translation — re-translate
+      doTranslate();
+    } else if (selectedIndex >= 0 && currentResults[selectedIndex]) {
       selectResult(currentResults[selectedIndex]);
-    } else if (input.value.trim()) {
+    } else if (currentText) {
       doTranslate();
     }
     return;
@@ -63,6 +78,7 @@ async function doTranslate() {
   const text = input.value.trim();
   if (!text) return;
 
+  lastTranslatedText = text;
   const target = langSelect.value;
   results.innerHTML = '<div class="status-msg loading">Translating...</div>';
   selectedIndex = -1;
@@ -70,19 +86,17 @@ async function doTranslate() {
   try {
     const suggestions = await invoke('translate', {
       text,
-      source: 'auto',
+      source: sourceLanguage,
       target,
     });
     currentResults = suggestions;
     selectedIndex = suggestions.length > 0 ? 0 : -1;
     renderResults();
-
-    // Resize window to fit results
-    const modalHeight = document.getElementById('modal').offsetHeight + 24;
-    await currentWindow.setSize(new window.__TAURI__.window.LogicalSize(600, Math.min(modalHeight, 400)));
+    await resizeToFitContent();
   } catch (err) {
     results.innerHTML = `<div class="status-msg error">${escapeHtml(String(err))}</div>`;
     currentResults = [];
+    await resizeToFitContent();
   }
 }
 
@@ -114,6 +128,21 @@ async function selectResult(item) {
   await invoke('inject_text', { text: item.text });
   // Reset window height after injection
   await currentWindow.setSize(new window.__TAURI__.window.LogicalSize(600, 72));
+}
+
+async function resizeToFitContent() {
+  // Expand the window first so the WebView lays out content at full size,
+  // then measure the actual modal height and shrink to fit.
+  const maxHeight = 400;
+  const LogicalSize = window.__TAURI__.window.LogicalSize;
+  await currentWindow.setSize(new LogicalSize(600, maxHeight));
+
+  // Wait for the browser to reflow into the expanded space
+  await new Promise((r) => requestAnimationFrame(r));
+  await new Promise((r) => requestAnimationFrame(r));
+
+  const modalHeight = document.getElementById('modal').offsetHeight + 24;
+  await currentWindow.setSize(new LogicalSize(600, Math.min(modalHeight, maxHeight)));
 }
 
 function escapeHtml(str) {

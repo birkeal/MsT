@@ -1,6 +1,6 @@
 {
   "identifier": "default",
-  "description": "Default capabilities for MisterT",
+  "description": "Default capabilities for Ms. T",
   "windows": ["main"],
   "permissions": [
     "core:default",

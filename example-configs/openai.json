@@ -1,0 +1,8 @@
+{
+  "translation_type": "ai",
+  "service_url": "https://api.openai.com/v1/chat/completions",
+  "api_key": "sk-...",
+  "model": "gpt-4o",
+  "default_source_language": "de",
+  "default_target_language": "en"
+}

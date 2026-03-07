@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use crate::error::MisterTError;
+use crate::error::MstError;
 
 #[cfg(target_os = "windows")]
 mod windows;
@@ -31,7 +31,7 @@ impl PlatformState {
     }
 }
 
-pub fn save_foreground_window(state: &PlatformState) -> Result<(), MisterTError> {
+pub fn save_foreground_window(state: &PlatformState) -> Result<(), MstError> {
     #[cfg(target_os = "windows")]
     {
         windows::save_foreground_window(state)
@@ -46,7 +46,7 @@ pub fn save_foreground_window(state: &PlatformState) -> Result<(), MisterTError>
     }
 }
 
-pub fn restore_foreground_window(state: &PlatformState) -> Result<(), MisterTError> {
+pub fn restore_foreground_window(state: &PlatformState) -> Result<(), MstError> {
     #[cfg(target_os = "windows")]
     {
         windows::restore_foreground_window(state)
@@ -61,7 +61,7 @@ pub fn restore_foreground_window(state: &PlatformState) -> Result<(), MisterTErr
     }
 }
 
-pub fn simulate_paste() -> Result<(), MisterTError> {
+pub fn simulate_paste() -> Result<(), MstError> {
     #[cfg(target_os = "windows")]
     {
         windows::simulate_paste()

@@ -45,7 +45,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'MisterT ${{ github.ref_name }}'
+          releaseName: 'Ms. T ${{ github.ref_name }}'
           releaseBody: 'See the assets below to download for your platform.'
           releaseDraft: true
           prerelease: false

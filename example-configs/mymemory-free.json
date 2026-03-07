@@ -1,0 +1,6 @@
+{
+  "translation_type": "simple",
+  "service_url": "https://api.mymemory.translated.net/get",
+  "default_source_language": "de",
+  "default_target_language": "en"
+}

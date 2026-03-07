@@ -1,8 +1,9 @@
 use serde::Serialize;
 use tauri::State;
 
-use crate::error::MisterTError;
-use crate::translation::ProviderRegistry;
+use crate::config::AppConfig;
+use crate::error::MstError;
+use crate::translation;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct TranslationSuggestion {
@@ -15,16 +16,15 @@ pub async fn translate(
     text: String,
     source: String,
     target: String,
-    registry: State<'_, ProviderRegistry>,
-) -> Result<Vec<TranslationSuggestion>, MisterTError> {
-    let provider = registry
-        .active()
-        .ok_or_else(|| MisterTError::Translation("No translation provider configured".into()))?;
-
-    let result = provider
-        .translate(&text, &source, &target)
-        .await
-        .map_err(|e| MisterTError::Translation(e.to_string()))?;
+    config: State<'_, AppConfig>,
+) -> Result<Vec<TranslationSuggestion>, MstError> {
+    let result = match translation::translate(&config, &text, &source, &target).await {
+        Ok(r) => r,
+        Err(e) => {
+            log::error!("Translation failed: {e}");
+            return Err(e);
+        }
+    };
 
     let mut suggestions = vec![TranslationSuggestion {
         text: result.primary.clone(),

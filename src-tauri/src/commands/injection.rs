@@ -3,14 +3,14 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 use tokio::time::{sleep, Duration};
 
 use crate::config::AppConfig;
-use crate::error::MisterTError;
+use crate::error::MstError;
 use crate::platform::{self, PlatformState};
 
 #[tauri::command]
 pub async fn inject_text(
     text: String,
     app_handle: AppHandle,
-) -> Result<(), MisterTError> {
+) -> Result<(), MstError> {
     let platform_state = app_handle.state::<PlatformState>();
     let config = app_handle.state::<AppConfig>();
     let delay = Duration::from_millis(config.injection_delay_ms);
@@ -22,7 +22,7 @@ pub async fn inject_text(
     app_handle
         .clipboard()
         .write_text(&text)
-        .map_err(|e| MisterTError::Injection(format!("Clipboard write failed: {e}")))?;
+        .map_err(|e| MstError::Injection(format!("Clipboard write failed: {e}")))?;
 
     // Hide the modal window
     if let Some(window) = app_handle.get_webview_window("main") {

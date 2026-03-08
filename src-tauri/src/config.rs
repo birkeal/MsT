@@ -4,17 +4,12 @@ use std::path::PathBuf;
 
 use crate::error::MstError;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TranslationType {
+    #[default]
     Simple,
     Ai,
-}
-
-impl Default for TranslationType {
-    fn default() -> Self {
-        Self::Simple
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

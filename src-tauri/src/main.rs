@@ -7,6 +7,16 @@ use std::path::PathBuf;
 fn main() {
     let debug = std::env::args().any(|a| a == "--debug");
 
+    let autostart = std::env::args().find_map(|a| {
+        if a == "--autostart=true" {
+            Some(true)
+        } else if a == "--autostart=false" {
+            Some(false)
+        } else {
+            None
+        }
+    });
+
     if debug {
         let log_path = debug_log_path();
         setup_debug_logging(&log_path);
@@ -14,7 +24,7 @@ fn main() {
         log::info!("Log file: {}", log_path.display());
     }
 
-    mst::run()
+    mst::run(autostart)
 }
 
 fn debug_log_path() -> PathBuf {

@@ -42,6 +42,17 @@ pub fn restore_foreground_window(state: &PlatformState) -> Result<(), MstError> 
     }
 }
 
+pub fn simulate_copy() -> Result<(), MstError> {
+    Command::new("osascript")
+        .args([
+            "-e",
+            "tell application \"System Events\" to keystroke \"c\" using command down",
+        ])
+        .output()
+        .map_err(|e| MstError::Injection(format!("Failed to simulate copy: {e}")))?;
+    Ok(())
+}
+
 pub fn simulate_paste() -> Result<(), MstError> {
     Command::new("osascript")
         .args([

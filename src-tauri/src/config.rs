@@ -32,13 +32,17 @@ pub struct AppConfig {
     pub default_source_language: String,
     #[serde(default = "default_injection_delay")]
     pub injection_delay_ms: u64,
+    #[serde(default = "default_hotkey_tap_interval")]
+    pub hotkey_tap_interval_ms: u64,
+    #[serde(default = "default_selection_hotkey")]
+    pub selection_hotkey: Option<String>,
 }
 
 fn default_service_url() -> String {
     "https://api.mymemory.translated.net/get".into()
 }
 fn default_hotkey() -> String {
-    "CmdOrCtrl+Alt+T".into()
+    "CmdOrCtrl+CmdOrCtrl".into()
 }
 fn default_target_lang() -> String {
     "en".into()
@@ -48,6 +52,12 @@ fn default_source_lang() -> String {
 }
 fn default_injection_delay() -> u64 {
     100
+}
+fn default_hotkey_tap_interval() -> u64 {
+    300
+}
+fn default_selection_hotkey() -> Option<String> {
+    Some("CmdOrCtrl+CmdOrCtrl".into())
 }
 
 impl Default for AppConfig {
@@ -62,6 +72,8 @@ impl Default for AppConfig {
             default_target_language: default_target_lang(),
             default_source_language: default_source_lang(),
             injection_delay_ms: default_injection_delay(),
+            hotkey_tap_interval_ms: default_hotkey_tap_interval(),
+            selection_hotkey: default_selection_hotkey(),
         }
     }
 }

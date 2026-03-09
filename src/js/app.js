@@ -9,6 +9,7 @@ let selectedIndex = -1;
 let currentResults = [];
 let sourceLanguage = 'de';
 let lastTranslatedText = '';
+let selectionCapturedAt = 0;
 
 // Load source language from config
 invoke('load_settings').then((config) => {
@@ -18,19 +19,33 @@ invoke('load_settings').then((config) => {
   }
 });
 
+const { listen } = window.__TAURI__.event;
+
 // Focus input when window becomes visible
 const currentWindow = getCurrentWindow();
 currentWindow.onFocusChanged(({ payload: focused }) => {
   if (focused) {
-    input.value = '';
-    results.innerHTML = '';
-    currentResults = [];
-    selectedIndex = -1;
-    lastTranslatedText = '';
+    // Don't clear if a selection was just captured (race between focus and IPC event)
+    if (Date.now() - selectionCapturedAt > 500) {
+      input.value = '';
+      results.innerHTML = '';
+      currentResults = [];
+      selectedIndex = -1;
+      lastTranslatedText = '';
+    }
     input.focus();
   } else {
+    currentWindow.setSize(new window.__TAURI__.window.LogicalSize(600, 72));
     currentWindow.hide();
   }
+});
+
+// Listen for selection-captured events from the backend
+listen('selection-captured', (event) => {
+  selectionCapturedAt = Date.now();
+  input.value = event.payload;
+  lastTranslatedText = '';
+  doTranslate();
 });
 
 input.addEventListener('keydown', (e) => {

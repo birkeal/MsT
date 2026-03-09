@@ -31,6 +31,20 @@ impl PlatformState {
     }
 }
 
+/// Describes a multi-tap hotkey pattern for the platform keyboard hook.
+pub enum MultiTapKind {
+    /// A modifier key tapped alone (e.g., double-tap Ctrl).
+    /// `modifier` is one of: "control", "alt", "shift", "super".
+    ModifierOnly { modifier: String },
+    /// A key combo tapped multiple times (e.g., Ctrl+C twice).
+    /// `modifiers` are names like "control", "alt", etc.
+    /// `key` is the tauri Code for the non-modifier key.
+    KeyCombo {
+        modifiers: Vec<String>,
+        key: tauri_plugin_global_shortcut::Code,
+    },
+}
+
 pub fn save_foreground_window(state: &PlatformState) -> Result<(), MstError> {
     #[cfg(target_os = "windows")]
     {
@@ -61,6 +75,21 @@ pub fn restore_foreground_window(state: &PlatformState) -> Result<(), MstError> 
     }
 }
 
+pub fn simulate_copy() -> Result<(), MstError> {
+    #[cfg(target_os = "windows")]
+    {
+        windows::simulate_copy()
+    }
+    #[cfg(target_os = "linux")]
+    {
+        linux::simulate_copy()
+    }
+    #[cfg(target_os = "macos")]
+    {
+        macos::simulate_copy()
+    }
+}
+
 pub fn simulate_paste() -> Result<(), MstError> {
     #[cfg(target_os = "windows")]
     {
@@ -73,5 +102,34 @@ pub fn simulate_paste() -> Result<(), MstError> {
     #[cfg(target_os = "macos")]
     {
         macos::simulate_paste()
+    }
+}
+
+/// Install a low-level keyboard hook for multi-tap hotkey detection.
+/// Each config tuple: (kind, required_taps, interval_ms, callback).
+/// The hook observes key events without consuming them, so normal
+/// keyboard input (Ctrl+C, Ctrl+V, etc.) continues to work.
+pub fn install_multi_tap_hook(
+    configs: Vec<(MultiTapKind, u32, u64, Box<dyn Fn() + Send + Sync>)>,
+) -> Result<(), MstError> {
+    #[cfg(target_os = "windows")]
+    {
+        windows::install_multi_tap_hook(configs)
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let _ = configs;
+        log::warn!("Multi-tap keyboard hooks not yet implemented on Linux");
+        Err(MstError::Injection(
+            "Multi-tap hotkeys require a single-tap shortcut on Linux".into(),
+        ))
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let _ = configs;
+        log::warn!("Multi-tap keyboard hooks not yet implemented on macOS");
+        Err(MstError::Injection(
+            "Multi-tap hotkeys require a single-tap shortcut on macOS".into(),
+        ))
     }
 }

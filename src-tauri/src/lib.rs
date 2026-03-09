@@ -62,7 +62,7 @@ pub fn run() {
                 .build()?;
 
             // Create tray icon (solid accent color placeholder — replace with proper icon later)
-            let icon_rgba: Vec<u8> = vec![89, 180, 250, 255].repeat(32 * 32);
+            let icon_rgba: Vec<u8> = [89, 180, 250, 255].repeat(32 * 32);
             let _tray = TrayIconBuilder::new()
                 .icon(Image::new_owned(icon_rgba, 32, 32))
                 .menu(&menu)

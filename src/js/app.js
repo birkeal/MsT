@@ -28,6 +28,8 @@ currentWindow.onFocusChanged(({ payload: focused }) => {
     selectedIndex = -1;
     lastTranslatedText = '';
     input.focus();
+  } else {
+    currentWindow.hide();
   }
 });
 

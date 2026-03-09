@@ -8,9 +8,6 @@ pub enum MstError {
     #[error("Injection error: {0}")]
     Injection(String),
 
-    #[error("Config error: {0}")]
-    Config(String),
-
     #[error("HTTP error: {0}")]
     Http(#[from] reqwest::Error),
 

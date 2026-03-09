@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="src-tauri/logo/mst-logo.png" alt="Ms. T Logo" width="200">
+</p>
+
 # Ms. T
 
 Never misses a translation!
@@ -148,6 +152,14 @@ Ready-to-use example configurations are in the `example-configs/` directory. Cop
 3. Use **Arrow keys** to navigate results, **Enter** to select
 4. The selected translation is pasted into the previously focused application
 5. Press **Escape** to dismiss without translating
+
+## Todo
+
+[] Allow multi-tap hotkey bindings (e.g. CmdOrCtrl + CmdOrCtrl, or CmdOrCtrl + C + C). Make the max. interval time for multi-tap configurable.
+[] Allow function hotkey bindings (e.g. F8)
+[] Autostart configuration (if started with autostart="true" MsT writes itself to autostart. If started with false, removes itself from autostart)
+[] Check for interference with clipboard (preserve old clipboard state)
+[] Allow translation of selected text (separate or same hotkey)
 
 ## License
 

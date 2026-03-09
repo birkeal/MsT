@@ -89,8 +89,15 @@ pub fn run() {
 
             // Register global hotkey from config
             let hotkey_config = app.state::<AppConfig>();
-            let shortcut = parse_hotkey(&hotkey_config.hotkey)
-                .expect("Invalid hotkey in config");
+            let shortcut = match parse_hotkey(&hotkey_config.hotkey) {
+                Ok(s) => s,
+                Err(e) => {
+                    log::error!("Invalid hotkey '{}': {e} — falling back to default", hotkey_config.hotkey);
+                    eprintln!("WARNING: Invalid hotkey '{}': {e} — falling back to default", hotkey_config.hotkey);
+                    parse_hotkey(&AppConfig::default().hotkey)
+                        .expect("Default hotkey must be valid")
+                }
+            };
             log::debug!("Registering hotkey: {:?}", hotkey_config.hotkey);
 
             let app_handle = app.handle().clone();
@@ -159,6 +166,18 @@ fn parse_hotkey(hotkey: &str) -> Result<Shortcut, String> {
         "f10" => Code::F10, "f11" => Code::F11, "f12" => Code::F12,
         "space" => Code::Space, "enter" | "return" => Code::Enter,
         "escape" | "esc" => Code::Escape, "tab" => Code::Tab,
+        "backspace" => Code::Backspace, "delete" => Code::Delete,
+        "insert" => Code::Insert,
+        "home" => Code::Home, "end" => Code::End,
+        "pageup" => Code::PageUp, "pagedown" => Code::PageDown,
+        "up" | "arrowup" => Code::ArrowUp, "down" | "arrowdown" => Code::ArrowDown,
+        "left" | "arrowleft" => Code::ArrowLeft, "right" | "arrowright" => Code::ArrowRight,
+        "`" | "´" | "backtick" | "backquote" => Code::Backquote,
+        "-" | "minus" => Code::Minus, "=" | "equal" | "equals" => Code::Equal,
+        "[" | "bracketleft" => Code::BracketLeft, "]" | "bracketright" => Code::BracketRight,
+        "\\" | "backslash" => Code::Backslash, "/" | "slash" => Code::Slash,
+        ";" | "semicolon" => Code::Semicolon, "'" | "quote" => Code::Quote,
+        "," | "comma" => Code::Comma, "." | "period" => Code::Period,
         other => return Err(format!("Unknown key: {other}")),
     };
 

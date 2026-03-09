@@ -33,10 +33,8 @@
     "active": true,
     "targets": ["nsis", "deb", "appimage", "dmg"],
     "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
+      "icons/favicon-32x32.png",
+      "icons/android-chrome-512x512.png",
       "icons/icon.ico"
     ]
   },

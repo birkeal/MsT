@@ -88,10 +88,9 @@ async fn simple_translate(
     let client = Client::new();
     let langpair = format!("{}|{}", source, target);
 
-    let mut req = client.get(&config.service_url).query(&[
-        ("q", text),
-        ("langpair", &langpair),
-    ]);
+    let mut req = client
+        .get(&config.service_url)
+        .query(&[("q", text), ("langpair", &langpair)]);
 
     if let Some(ref key) = config.api_key {
         req = req.query(&[("key", key.as_str())]);
@@ -134,9 +133,7 @@ fn build_ai_prompt(config: &AppConfig, text: &str, target: &str) -> String {
         .filter(|p| !p.is_empty())
         .unwrap_or(DEFAULT_AI_PROMPT);
 
-    template
-        .replace("{text}", text)
-        .replace("{target}", target)
+    template.replace("{text}", text).replace("{target}", target)
 }
 
 async fn ai_translate(

@@ -10,7 +10,11 @@ use crate::platform::{self, PlatformState};
 /// Saved clipboard content for preservation across injection.
 enum ClipboardContent {
     Text(String),
-    Image { rgba: Vec<u8>, width: u32, height: u32 },
+    Image {
+        rgba: Vec<u8>,
+        width: u32,
+        height: u32,
+    },
     Empty,
 }
 
@@ -37,7 +41,11 @@ fn restore_clipboard(app_handle: &AppHandle, content: ClipboardContent) {
         ClipboardContent::Text(text) => {
             let _ = app_handle.clipboard().write_text(&text);
         }
-        ClipboardContent::Image { rgba, width, height } => {
+        ClipboardContent::Image {
+            rgba,
+            width,
+            height,
+        } => {
             let image = Image::new_owned(rgba, width, height);
             let _ = app_handle.clipboard().write_image(&image);
         }
@@ -48,10 +56,7 @@ fn restore_clipboard(app_handle: &AppHandle, content: ClipboardContent) {
 }
 
 #[tauri::command]
-pub async fn inject_text(
-    text: String,
-    app_handle: AppHandle,
-) -> Result<(), MstError> {
+pub async fn inject_text(text: String, app_handle: AppHandle) -> Result<(), MstError> {
     let platform_state = app_handle.state::<PlatformState>();
     let config = app_handle.state::<AppConfig>();
     let delay = Duration::from_millis(config.injection_delay_ms);

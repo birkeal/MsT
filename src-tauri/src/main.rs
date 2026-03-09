@@ -2,7 +2,7 @@
 
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn main() {
     let debug = std::env::args().any(|a| a == "--debug");
@@ -35,9 +35,9 @@ fn debug_log_path() -> PathBuf {
         .join("mst-debug.log")
 }
 
-fn setup_debug_logging(log_path: &PathBuf) {
+fn setup_debug_logging(log_path: &Path) {
     // Install a panic hook that writes to the log file before aborting
-    let panic_path = log_path.clone();
+    let panic_path = log_path.to_path_buf();
     std::panic::set_hook(Box::new(move |info| {
         let mut f = OpenOptions::new()
             .create(true)
@@ -53,12 +53,11 @@ fn setup_debug_logging(log_path: &PathBuf) {
     }));
 
     // Configure env_logger to write to the log file
-    let target_path = log_path.clone();
     let file = OpenOptions::new()
         .create(true)
         .write(true)
         .truncate(true)
-        .open(&target_path)
+        .open(log_path)
         .expect("failed to open debug log file");
 
     std::env::set_var("RUST_LOG", "debug");

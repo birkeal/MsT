@@ -102,6 +102,7 @@ The config file is created automatically on first launch at:
 | `default_source_language` | string | `"de"` | Source language code |
 | `default_target_language` | string | `"en"` | Target language code |
 | `injection_delay_ms` | number | `100` | Delay in ms between paste steps |
+| `disable_when_fullscreen` | boolean | `true` | Suppress hotkeys when a fullscreen app is active |
 
 
 
@@ -194,12 +195,8 @@ If `selection_hotkey` is set to the same value as `hotkey`, Ms. T will auto-dete
 
 ## Todo
 
-[x] Allow multi-tap hotkey bindings (e.g. CmdOrCtrl + CmdOrCtrl, or CmdOrCtrl + C + C). Make the max. interval time for multi-tap configurable.
-[x] Autostart configuration (if started with autostart="true" MsT writes itself to autostart. If started with false, removes itself from autostart)
-[x] Check for interference with clipboard (preserve old clipboard state)
-[x] Allow translation of selected text (separate or same hotkey)
-[] Display loading.gif instead of target language selection field while waiting on api response.
-[] By default, disable functionality if a full-screen app is active (e.g. a game or similar). Create a setting for this.
+[] Enhance UI
+
 ## License
 
 MIT

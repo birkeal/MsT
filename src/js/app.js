@@ -4,6 +4,7 @@ const { getCurrentWindow } = window.__TAURI__.window;
 const input = document.getElementById('search-input');
 const langSelect = document.getElementById('lang-select');
 const results = document.getElementById('results');
+const loadingIndicator = document.getElementById('loading-indicator');
 
 let selectedIndex = -1;
 let currentResults = [];
@@ -100,6 +101,9 @@ async function doTranslate() {
   results.innerHTML = '<div class="status-msg loading">Translating...</div>';
   selectedIndex = -1;
 
+  langSelect.style.display = 'none';
+  loadingIndicator.classList.add('active');
+
   try {
     const suggestions = await invoke('translate', {
       text,
@@ -114,6 +118,9 @@ async function doTranslate() {
     results.innerHTML = `<div class="status-msg error">${escapeHtml(String(err))}</div>`;
     currentResults = [];
     await resizeToFitContent();
+  } finally {
+    loadingIndicator.classList.remove('active');
+    langSelect.style.display = '';
   }
 }
 

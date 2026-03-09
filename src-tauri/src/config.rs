@@ -36,6 +36,8 @@ pub struct AppConfig {
     pub hotkey_tap_interval_ms: u64,
     #[serde(default = "default_selection_hotkey")]
     pub selection_hotkey: Option<String>,
+    #[serde(default = "default_disable_when_fullscreen")]
+    pub disable_when_fullscreen: bool,
 }
 
 fn default_service_url() -> String {
@@ -59,6 +61,9 @@ fn default_hotkey_tap_interval() -> u64 {
 fn default_selection_hotkey() -> Option<String> {
     Some("CmdOrCtrl+CmdOrCtrl".into())
 }
+fn default_disable_when_fullscreen() -> bool {
+    true
+}
 
 impl Default for AppConfig {
     fn default() -> Self {
@@ -74,6 +79,7 @@ impl Default for AppConfig {
             injection_delay_ms: default_injection_delay(),
             hotkey_tap_interval_ms: default_hotkey_tap_interval(),
             selection_hotkey: default_selection_hotkey(),
+            disable_when_fullscreen: default_disable_when_fullscreen(),
         }
     }
 }

@@ -1,7 +1,7 @@
 use std::process::Command;
 
-use crate::error::MstError;
 use super::{PlatformState, WindowHandle};
+use crate::error::MstError;
 
 pub fn save_foreground_window(state: &PlatformState) -> Result<(), MstError> {
     let output = Command::new("osascript")
@@ -33,9 +33,7 @@ pub fn restore_foreground_window(state: &PlatformState) -> Result<(), MstError> 
                     &format!("tell application \"{}\" to activate", app_name),
                 ])
                 .output()
-                .map_err(|e| {
-                    MstError::Injection(format!("Failed to restore window: {e}"))
-                })?;
+                .map_err(|e| MstError::Injection(format!("Failed to restore window: {e}")))?;
             Ok(())
         }
         _ => Err(MstError::Injection("No saved window to restore".into())),
@@ -62,4 +60,8 @@ pub fn simulate_paste() -> Result<(), MstError> {
         .output()
         .map_err(|e| MstError::Injection(format!("Failed to simulate paste: {e}")))?;
     Ok(())
+}
+
+pub fn is_fullscreen_app_active() -> bool {
+    false
 }

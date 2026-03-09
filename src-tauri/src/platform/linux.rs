@@ -1,7 +1,7 @@
 use std::process::Command;
 
-use crate::error::MstError;
 use super::{PlatformState, WindowHandle};
+use crate::error::MstError;
 
 pub fn save_foreground_window(state: &PlatformState) -> Result<(), MstError> {
     let output = Command::new("xdotool")
@@ -48,4 +48,8 @@ pub fn simulate_paste() -> Result<(), MstError> {
         .output()
         .map_err(|e| MstError::Injection(format!("Failed to simulate paste: {e}")))?;
     Ok(())
+}
+
+pub fn is_fullscreen_app_active() -> bool {
+    false
 }

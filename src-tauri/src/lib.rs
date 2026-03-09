@@ -16,7 +16,7 @@ use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut}
 use tauri_plugin_autostart::MacosLauncher;
 
 use config::AppConfig;
-use platform::{MultiTapKind, PlatformState};
+use platform::{MultiTapConfig, MultiTapKind, PlatformState};
 
 /// Result of parsing a hotkey string.
 enum ParsedHotkey {
@@ -29,10 +29,7 @@ enum ParsedHotkey {
         taps: u32,
     },
     /// Modifier-only tap (e.g., "CmdOrCtrl+CmdOrCtrl") — use platform keyboard hook.
-    ModifierTap {
-        modifier: String,
-        taps: u32,
-    },
+    ModifierTap { modifier: String, taps: u32 },
 }
 
 pub fn run(autostart: Option<bool>) {
@@ -160,7 +157,7 @@ pub fn run(autostart: Option<bool>) {
             let auto_detect_selection = hotkey_config.selection_hotkey.as_deref() == Some(&hotkey_config.hotkey);
 
             // Collect multi-tap patterns for the platform hook
-            let mut multi_tap_configs: Vec<(MultiTapKind, u32, u64, Box<dyn Fn() + Send + Sync>)> = Vec::new();
+            let mut multi_tap_configs: Vec<MultiTapConfig> = Vec::new();
 
             // Register main hotkey
             match parsed_main {
@@ -202,6 +199,11 @@ pub fn run(autostart: Option<bool>) {
                             if event.state != tauri_plugin_global_shortcut::ShortcutState::Pressed {
                                 return;
                             }
+                            let config = app_handle.state::<AppConfig>();
+                            if config.disable_when_fullscreen && platform::is_fullscreen_app_active() {
+                                log::debug!("Fullscreen app detected — suppressing selection hotkey");
+                                return;
+                            }
                             let handle = app_handle.clone();
                             let d = delay_ms;
                             std::thread::spawn(move || {
@@ -224,6 +226,11 @@ pub fn run(autostart: Option<bool>) {
                         let d = delay_ms;
                         multi_tap_configs.push((kind, taps, tap_interval_ms, Box::new(move || {
                             // Modifier-only doesn't copy — need to simulate Ctrl+C
+                            let config = app_handle.state::<AppConfig>();
+                            if config.disable_when_fullscreen && platform::is_fullscreen_app_active() {
+                                log::debug!("Fullscreen app detected — suppressing selection hotkey");
+                                return;
+                            }
                             let handle = app_handle.clone();
                             std::thread::spawn(move || {
                                 capture_and_show_selection(&handle, d);
@@ -258,6 +265,12 @@ fn handle_main_hotkey(app_handle: &tauri::AppHandle, auto_detect_selection: bool
         }
     }
 
+    let config = app_handle.state::<AppConfig>();
+    if config.disable_when_fullscreen && platform::is_fullscreen_app_active() {
+        log::debug!("Fullscreen app detected — suppressing hotkey");
+        return;
+    }
+
     if auto_detect_selection {
         let handle = app_handle.clone();
         std::thread::spawn(move || {
@@ -278,6 +291,12 @@ fn handle_main_hotkey(app_handle: &tauri::AppHandle, auto_detect_selection: bool
 /// Handle selection hotkey from a multi-tap hook.
 /// The user's own keypresses already performed the copy, so just read the clipboard.
 fn handle_selection_hotkey_from_hook(app_handle: &tauri::AppHandle) {
+    let config = app_handle.state::<AppConfig>();
+    if config.disable_when_fullscreen && platform::is_fullscreen_app_active() {
+        log::debug!("Fullscreen app detected — suppressing selection hotkey");
+        return;
+    }
+
     let handle = app_handle.clone();
     std::thread::spawn(move || {
         show_clipboard_as_selection(&handle);
@@ -349,7 +368,10 @@ fn capture_and_show_selection(app_handle: &tauri::AppHandle, delay_ms: u64) {
         return;
     }
 
-    log::debug!("Selection captured: {:?}", &selected_text[..selected_text.len().min(50)]);
+    log::debug!(
+        "Selection captured: {:?}",
+        &selected_text[..selected_text.len().min(50)]
+    );
 
     // Show window and emit the captured text
     if let Some(window) = app_handle.get_webview_window("main") {
@@ -363,37 +385,80 @@ fn capture_and_show_selection(app_handle: &tauri::AppHandle, delay_ms: u64) {
 /// Map a key name to a `Code`. Returns `None` if it's a modifier name or unknown.
 fn parse_key_code(key: &str) -> Option<Code> {
     match key.to_lowercase().as_str() {
-        "a" => Some(Code::KeyA), "b" => Some(Code::KeyB), "c" => Some(Code::KeyC),
-        "d" => Some(Code::KeyD), "e" => Some(Code::KeyE), "f" => Some(Code::KeyF),
-        "g" => Some(Code::KeyG), "h" => Some(Code::KeyH), "i" => Some(Code::KeyI),
-        "j" => Some(Code::KeyJ), "k" => Some(Code::KeyK), "l" => Some(Code::KeyL),
-        "m" => Some(Code::KeyM), "n" => Some(Code::KeyN), "o" => Some(Code::KeyO),
-        "p" => Some(Code::KeyP), "q" => Some(Code::KeyQ), "r" => Some(Code::KeyR),
-        "s" => Some(Code::KeyS), "t" => Some(Code::KeyT), "u" => Some(Code::KeyU),
-        "v" => Some(Code::KeyV), "w" => Some(Code::KeyW), "x" => Some(Code::KeyX),
-        "y" => Some(Code::KeyY), "z" => Some(Code::KeyZ),
-        "0" => Some(Code::Digit0), "1" => Some(Code::Digit1), "2" => Some(Code::Digit2),
-        "3" => Some(Code::Digit3), "4" => Some(Code::Digit4), "5" => Some(Code::Digit5),
-        "6" => Some(Code::Digit6), "7" => Some(Code::Digit7), "8" => Some(Code::Digit8),
+        "a" => Some(Code::KeyA),
+        "b" => Some(Code::KeyB),
+        "c" => Some(Code::KeyC),
+        "d" => Some(Code::KeyD),
+        "e" => Some(Code::KeyE),
+        "f" => Some(Code::KeyF),
+        "g" => Some(Code::KeyG),
+        "h" => Some(Code::KeyH),
+        "i" => Some(Code::KeyI),
+        "j" => Some(Code::KeyJ),
+        "k" => Some(Code::KeyK),
+        "l" => Some(Code::KeyL),
+        "m" => Some(Code::KeyM),
+        "n" => Some(Code::KeyN),
+        "o" => Some(Code::KeyO),
+        "p" => Some(Code::KeyP),
+        "q" => Some(Code::KeyQ),
+        "r" => Some(Code::KeyR),
+        "s" => Some(Code::KeyS),
+        "t" => Some(Code::KeyT),
+        "u" => Some(Code::KeyU),
+        "v" => Some(Code::KeyV),
+        "w" => Some(Code::KeyW),
+        "x" => Some(Code::KeyX),
+        "y" => Some(Code::KeyY),
+        "z" => Some(Code::KeyZ),
+        "0" => Some(Code::Digit0),
+        "1" => Some(Code::Digit1),
+        "2" => Some(Code::Digit2),
+        "3" => Some(Code::Digit3),
+        "4" => Some(Code::Digit4),
+        "5" => Some(Code::Digit5),
+        "6" => Some(Code::Digit6),
+        "7" => Some(Code::Digit7),
+        "8" => Some(Code::Digit8),
         "9" => Some(Code::Digit9),
-        "f1" => Some(Code::F1), "f2" => Some(Code::F2), "f3" => Some(Code::F3),
-        "f4" => Some(Code::F4), "f5" => Some(Code::F5), "f6" => Some(Code::F6),
-        "f7" => Some(Code::F7), "f8" => Some(Code::F8), "f9" => Some(Code::F9),
-        "f10" => Some(Code::F10), "f11" => Some(Code::F11), "f12" => Some(Code::F12),
-        "space" => Some(Code::Space), "enter" | "return" => Some(Code::Enter),
-        "escape" | "esc" => Some(Code::Escape), "tab" => Some(Code::Tab),
-        "backspace" => Some(Code::Backspace), "delete" => Some(Code::Delete),
+        "f1" => Some(Code::F1),
+        "f2" => Some(Code::F2),
+        "f3" => Some(Code::F3),
+        "f4" => Some(Code::F4),
+        "f5" => Some(Code::F5),
+        "f6" => Some(Code::F6),
+        "f7" => Some(Code::F7),
+        "f8" => Some(Code::F8),
+        "f9" => Some(Code::F9),
+        "f10" => Some(Code::F10),
+        "f11" => Some(Code::F11),
+        "f12" => Some(Code::F12),
+        "space" => Some(Code::Space),
+        "enter" | "return" => Some(Code::Enter),
+        "escape" | "esc" => Some(Code::Escape),
+        "tab" => Some(Code::Tab),
+        "backspace" => Some(Code::Backspace),
+        "delete" => Some(Code::Delete),
         "insert" => Some(Code::Insert),
-        "home" => Some(Code::Home), "end" => Some(Code::End),
-        "pageup" => Some(Code::PageUp), "pagedown" => Some(Code::PageDown),
-        "up" | "arrowup" => Some(Code::ArrowUp), "down" | "arrowdown" => Some(Code::ArrowDown),
-        "left" | "arrowleft" => Some(Code::ArrowLeft), "right" | "arrowright" => Some(Code::ArrowRight),
+        "home" => Some(Code::Home),
+        "end" => Some(Code::End),
+        "pageup" => Some(Code::PageUp),
+        "pagedown" => Some(Code::PageDown),
+        "up" | "arrowup" => Some(Code::ArrowUp),
+        "down" | "arrowdown" => Some(Code::ArrowDown),
+        "left" | "arrowleft" => Some(Code::ArrowLeft),
+        "right" | "arrowright" => Some(Code::ArrowRight),
         "`" | "´" | "backtick" | "backquote" => Some(Code::Backquote),
-        "-" | "minus" => Some(Code::Minus), "=" | "equal" | "equals" => Some(Code::Equal),
-        "[" | "bracketleft" => Some(Code::BracketLeft), "]" | "bracketright" => Some(Code::BracketRight),
-        "\\" | "backslash" => Some(Code::Backslash), "/" | "slash" => Some(Code::Slash),
-        ";" | "semicolon" => Some(Code::Semicolon), "'" | "quote" => Some(Code::Quote),
-        "," | "comma" => Some(Code::Comma), "." | "period" => Some(Code::Period),
+        "-" | "minus" => Some(Code::Minus),
+        "=" | "equal" | "equals" => Some(Code::Equal),
+        "[" | "bracketleft" => Some(Code::BracketLeft),
+        "]" | "bracketright" => Some(Code::BracketRight),
+        "\\" | "backslash" => Some(Code::Backslash),
+        "/" | "slash" => Some(Code::Slash),
+        ";" | "semicolon" => Some(Code::Semicolon),
+        "'" | "quote" => Some(Code::Quote),
+        "," | "comma" => Some(Code::Comma),
+        "." | "period" => Some(Code::Period),
         _ => None,
     }
 }
@@ -402,7 +467,16 @@ fn parse_key_code(key: &str) -> Option<Code> {
 fn is_modifier(token: &str) -> bool {
     matches!(
         token.to_lowercase().as_str(),
-        "ctrl" | "control" | "cmdorctrl" | "alt" | "option" | "shift" | "super" | "cmd" | "command" | "meta"
+        "ctrl"
+            | "control"
+            | "cmdorctrl"
+            | "alt"
+            | "option"
+            | "shift"
+            | "super"
+            | "cmd"
+            | "command"
+            | "meta"
     )
 }
 
@@ -466,7 +540,10 @@ fn parse_hotkey(hotkey: &str) -> Result<ParsedHotkey, String> {
             .count() as u32;
 
         let modifier = modifier_canonical_name(last).to_string();
-        return Ok(ParsedHotkey::ModifierTap { modifier, taps: tap_count });
+        return Ok(ParsedHotkey::ModifierTap {
+            modifier,
+            taps: tap_count,
+        });
     }
 
     // Detect multi-tap: count repeated trailing key tokens.
@@ -477,8 +554,7 @@ fn parse_hotkey(hotkey: &str) -> Result<ParsedHotkey, String> {
         .take_while(|t| t.to_lowercase() == key_str.to_lowercase())
         .count() as u32;
 
-    let code = parse_key_code(key_str)
-        .ok_or_else(|| format!("Unknown key: {key_str}"))?;
+    let code = parse_key_code(key_str).ok_or_else(|| format!("Unknown key: {key_str}"))?;
 
     if tap_count > 1 {
         // Multi-tap key combo — use platform hook
@@ -493,7 +569,11 @@ fn parse_hotkey(hotkey: &str) -> Result<ParsedHotkey, String> {
         })
     } else {
         // Single-tap — use global shortcut
-        let mods = if modifiers.is_empty() { None } else { Some(modifiers) };
+        let mods = if modifiers.is_empty() {
+            None
+        } else {
+            Some(modifiers)
+        };
         Ok(ParsedHotkey::SingleTap(Shortcut::new(mods, code)))
     }
 }
@@ -548,7 +628,11 @@ mod tests {
     #[test]
     fn parse_multi_tap_combo() {
         match parse_hotkey("CmdOrCtrl+C+C").unwrap() {
-            ParsedHotkey::MultiTapCombo { modifiers, key, taps } => {
+            ParsedHotkey::MultiTapCombo {
+                modifiers,
+                key,
+                taps,
+            } => {
                 assert_eq!(modifiers, vec!["control"]);
                 assert_eq!(key, Code::KeyC);
                 assert_eq!(taps, 2);
@@ -560,7 +644,11 @@ mod tests {
     #[test]
     fn parse_triple_tap_combo() {
         match parse_hotkey("Alt+T+T+T").unwrap() {
-            ParsedHotkey::MultiTapCombo { modifiers, key, taps } => {
+            ParsedHotkey::MultiTapCombo {
+                modifiers,
+                key,
+                taps,
+            } => {
                 assert_eq!(modifiers, vec!["alt"]);
                 assert_eq!(key, Code::KeyT);
                 assert_eq!(taps, 3);

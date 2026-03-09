@@ -2,12 +2,12 @@ use std::sync::Mutex;
 
 use crate::error::MstError;
 
-#[cfg(target_os = "windows")]
-mod windows;
 #[cfg(target_os = "linux")]
 mod linux;
 #[cfg(target_os = "macos")]
 mod macos;
+#[cfg(target_os = "windows")]
+mod windows;
 
 pub struct PlatformState {
     saved_window: Mutex<Option<WindowHandle>>,
@@ -105,13 +105,29 @@ pub fn simulate_paste() -> Result<(), MstError> {
     }
 }
 
+pub fn is_fullscreen_app_active() -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        windows::is_fullscreen_app_active()
+    }
+    #[cfg(target_os = "linux")]
+    {
+        linux::is_fullscreen_app_active()
+    }
+    #[cfg(target_os = "macos")]
+    {
+        macos::is_fullscreen_app_active()
+    }
+}
+
+/// A multi-tap hotkey configuration: (kind, required_taps, interval_ms, callback).
+pub type MultiTapConfig = (MultiTapKind, u32, u64, Box<dyn Fn() + Send + Sync>);
+
 /// Install a low-level keyboard hook for multi-tap hotkey detection.
 /// Each config tuple: (kind, required_taps, interval_ms, callback).
 /// The hook observes key events without consuming them, so normal
 /// keyboard input (Ctrl+C, Ctrl+V, etc.) continues to work.
-pub fn install_multi_tap_hook(
-    configs: Vec<(MultiTapKind, u32, u64, Box<dyn Fn() + Send + Sync>)>,
-) -> Result<(), MstError> {
+pub fn install_multi_tap_hook(configs: Vec<MultiTapConfig>) -> Result<(), MstError> {
     #[cfg(target_os = "windows")]
     {
         windows::install_multi_tap_hook(configs)

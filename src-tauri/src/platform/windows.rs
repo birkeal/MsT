@@ -1,16 +1,19 @@
 use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
 
-use crate::error::MstError;
 use super::{MultiTapKind, PlatformState, WindowHandle};
+use crate::error::MstError;
 
-use windows::Win32::Foundation::{HWND, WPARAM, LPARAM, LRESULT};
+use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, RECT, WPARAM};
+use windows::Win32::Graphics::Gdi::{
+    GetMonitorInfoW, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     GetAsyncKeyState, SendInput, INPUT, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, VIRTUAL_KEY,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    CallNextHookEx, GetForegroundWindow, SetForegroundWindow, SetWindowsHookExW,
-    KBDLLHOOKSTRUCT, WH_KEYBOARD_LL,
+    CallNextHookEx, GetDesktopWindow, GetForegroundWindow, GetWindowRect, SetForegroundWindow,
+    SetWindowsHookExW, KBDLLHOOKSTRUCT, WH_KEYBOARD_LL,
 };
 
 const VK_CONTROL: VIRTUAL_KEY = VIRTUAL_KEY(0x11);
@@ -47,25 +50,39 @@ fn send_key_combo(key_down: VIRTUAL_KEY, mod_down: VIRTUAL_KEY) -> Result<(), Ms
         INPUT {
             r#type: INPUT_KEYBOARD,
             Anonymous: windows::Win32::UI::Input::KeyboardAndMouse::INPUT_0 {
-                ki: KEYBDINPUT { wVk: mod_down, ..Default::default() },
+                ki: KEYBDINPUT {
+                    wVk: mod_down,
+                    ..Default::default()
+                },
             },
         },
         INPUT {
             r#type: INPUT_KEYBOARD,
             Anonymous: windows::Win32::UI::Input::KeyboardAndMouse::INPUT_0 {
-                ki: KEYBDINPUT { wVk: key_down, ..Default::default() },
+                ki: KEYBDINPUT {
+                    wVk: key_down,
+                    ..Default::default()
+                },
             },
         },
         INPUT {
             r#type: INPUT_KEYBOARD,
             Anonymous: windows::Win32::UI::Input::KeyboardAndMouse::INPUT_0 {
-                ki: KEYBDINPUT { wVk: key_down, dwFlags: KEYEVENTF_KEYUP, ..Default::default() },
+                ki: KEYBDINPUT {
+                    wVk: key_down,
+                    dwFlags: KEYEVENTF_KEYUP,
+                    ..Default::default()
+                },
             },
         },
         INPUT {
             r#type: INPUT_KEYBOARD,
             Anonymous: windows::Win32::UI::Input::KeyboardAndMouse::INPUT_0 {
-                ki: KEYBDINPUT { wVk: mod_down, dwFlags: KEYEVENTF_KEYUP, ..Default::default() },
+                ki: KEYBDINPUT {
+                    wVk: mod_down,
+                    dwFlags: KEYEVENTF_KEYUP,
+                    ..Default::default()
+                },
             },
         },
     ];
@@ -83,6 +100,36 @@ pub fn simulate_copy() -> Result<(), MstError> {
 
 pub fn simulate_paste() -> Result<(), MstError> {
     send_key_combo(VK_V, VK_CONTROL)
+}
+
+pub fn is_fullscreen_app_active() -> bool {
+    unsafe {
+        let hwnd = GetForegroundWindow();
+        if hwnd.0.is_null() || hwnd == GetDesktopWindow() {
+            return false;
+        }
+
+        let mut window_rect = RECT::default();
+        if GetWindowRect(hwnd, &mut window_rect).is_err() {
+            return false;
+        }
+
+        let monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+        let mut monitor_info = MONITORINFO {
+            cbSize: std::mem::size_of::<MONITORINFO>() as u32,
+            ..Default::default()
+        };
+
+        if !GetMonitorInfoW(monitor, &mut monitor_info).as_bool() {
+            return false;
+        }
+
+        let m = monitor_info.rcMonitor;
+        window_rect.left == m.left
+            && window_rect.top == m.top
+            && window_rect.right == m.right
+            && window_rect.bottom == m.bottom
+    }
 }
 
 // --- Low-level keyboard hook for multi-tap detection ---
@@ -114,8 +161,14 @@ struct TapPattern {
 }
 
 enum TapKind {
-    ModifierOnly { left_vk: u16, right_vk: u16 },
-    KeyCombo { modifier_pairs: Vec<(u16, u16)>, key_vk: u16 },
+    ModifierOnly {
+        left_vk: u16,
+        right_vk: u16,
+    },
+    KeyCombo {
+        modifier_pairs: Vec<(u16, u16)>,
+        key_vk: u16,
+    },
 }
 
 struct HookGlobals {
@@ -176,7 +229,10 @@ fn process_key_event(patterns: &mut [TapPattern], vk: u16, is_down: bool, is_up:
             }
         } else {
             let (key_vk, modifier_pairs) = match &pattern.kind {
-                TapKind::KeyCombo { key_vk, modifier_pairs } => (*key_vk, modifier_pairs.clone()),
+                TapKind::KeyCombo {
+                    key_vk,
+                    modifier_pairs,
+                } => (*key_vk, modifier_pairs.clone()),
                 _ => unreachable!(),
             };
 
@@ -197,11 +253,7 @@ fn process_key_event(patterns: &mut [TapPattern], vk: u16, is_down: bool, is_up:
     }
 }
 
-unsafe extern "system" fn keyboard_hook_proc(
-    code: i32,
-    wparam: WPARAM,
-    lparam: LPARAM,
-) -> LRESULT {
+unsafe extern "system" fn keyboard_hook_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     if code >= 0 {
         let info = &*(lparam.0 as *const KBDLLHOOKSTRUCT);
         let vk = info.vkCode as u16;
@@ -231,32 +283,64 @@ fn modifier_name_to_vks(modifier: &str) -> Option<(u16, u16)> {
 fn code_to_vk(code: tauri_plugin_global_shortcut::Code) -> Option<u16> {
     use tauri_plugin_global_shortcut::Code;
     match code {
-        Code::KeyA => Some(0x41), Code::KeyB => Some(0x42), Code::KeyC => Some(0x43),
-        Code::KeyD => Some(0x44), Code::KeyE => Some(0x45), Code::KeyF => Some(0x46),
-        Code::KeyG => Some(0x47), Code::KeyH => Some(0x48), Code::KeyI => Some(0x49),
-        Code::KeyJ => Some(0x4A), Code::KeyK => Some(0x4B), Code::KeyL => Some(0x4C),
-        Code::KeyM => Some(0x4D), Code::KeyN => Some(0x4E), Code::KeyO => Some(0x4F),
-        Code::KeyP => Some(0x50), Code::KeyQ => Some(0x51), Code::KeyR => Some(0x52),
-        Code::KeyS => Some(0x53), Code::KeyT => Some(0x54), Code::KeyU => Some(0x55),
-        Code::KeyV => Some(0x56), Code::KeyW => Some(0x57), Code::KeyX => Some(0x58),
-        Code::KeyY => Some(0x59), Code::KeyZ => Some(0x5A),
-        Code::Digit0 => Some(0x30), Code::Digit1 => Some(0x31), Code::Digit2 => Some(0x32),
-        Code::Digit3 => Some(0x33), Code::Digit4 => Some(0x34), Code::Digit5 => Some(0x35),
-        Code::Digit6 => Some(0x36), Code::Digit7 => Some(0x37), Code::Digit8 => Some(0x38),
+        Code::KeyA => Some(0x41),
+        Code::KeyB => Some(0x42),
+        Code::KeyC => Some(0x43),
+        Code::KeyD => Some(0x44),
+        Code::KeyE => Some(0x45),
+        Code::KeyF => Some(0x46),
+        Code::KeyG => Some(0x47),
+        Code::KeyH => Some(0x48),
+        Code::KeyI => Some(0x49),
+        Code::KeyJ => Some(0x4A),
+        Code::KeyK => Some(0x4B),
+        Code::KeyL => Some(0x4C),
+        Code::KeyM => Some(0x4D),
+        Code::KeyN => Some(0x4E),
+        Code::KeyO => Some(0x4F),
+        Code::KeyP => Some(0x50),
+        Code::KeyQ => Some(0x51),
+        Code::KeyR => Some(0x52),
+        Code::KeyS => Some(0x53),
+        Code::KeyT => Some(0x54),
+        Code::KeyU => Some(0x55),
+        Code::KeyV => Some(0x56),
+        Code::KeyW => Some(0x57),
+        Code::KeyX => Some(0x58),
+        Code::KeyY => Some(0x59),
+        Code::KeyZ => Some(0x5A),
+        Code::Digit0 => Some(0x30),
+        Code::Digit1 => Some(0x31),
+        Code::Digit2 => Some(0x32),
+        Code::Digit3 => Some(0x33),
+        Code::Digit4 => Some(0x34),
+        Code::Digit5 => Some(0x35),
+        Code::Digit6 => Some(0x36),
+        Code::Digit7 => Some(0x37),
+        Code::Digit8 => Some(0x38),
         Code::Digit9 => Some(0x39),
-        Code::F1 => Some(0x70), Code::F2 => Some(0x71), Code::F3 => Some(0x72),
-        Code::F4 => Some(0x73), Code::F5 => Some(0x74), Code::F6 => Some(0x75),
-        Code::F7 => Some(0x76), Code::F8 => Some(0x77), Code::F9 => Some(0x78),
-        Code::F10 => Some(0x79), Code::F11 => Some(0x7A), Code::F12 => Some(0x7B),
-        Code::Space => Some(0x20), Code::Enter => Some(0x0D), Code::Escape => Some(0x1B),
-        Code::Tab => Some(0x09), Code::Backspace => Some(0x08),
+        Code::F1 => Some(0x70),
+        Code::F2 => Some(0x71),
+        Code::F3 => Some(0x72),
+        Code::F4 => Some(0x73),
+        Code::F5 => Some(0x74),
+        Code::F6 => Some(0x75),
+        Code::F7 => Some(0x76),
+        Code::F8 => Some(0x77),
+        Code::F9 => Some(0x78),
+        Code::F10 => Some(0x79),
+        Code::F11 => Some(0x7A),
+        Code::F12 => Some(0x7B),
+        Code::Space => Some(0x20),
+        Code::Enter => Some(0x0D),
+        Code::Escape => Some(0x1B),
+        Code::Tab => Some(0x09),
+        Code::Backspace => Some(0x08),
         _ => None,
     }
 }
 
-pub fn install_multi_tap_hook(
-    configs: Vec<(MultiTapKind, u32, u64, Box<dyn Fn() + Send + Sync>)>,
-) -> Result<(), MstError> {
+pub fn install_multi_tap_hook(configs: Vec<super::MultiTapConfig>) -> Result<(), MstError> {
     let mut patterns = Vec::new();
 
     for (kind, required_taps, interval_ms, callback) in configs {
@@ -273,7 +357,10 @@ pub fn install_multi_tap_hook(
                     .iter()
                     .filter_map(|m| modifier_name_to_vks(m))
                     .collect();
-                TapKind::KeyCombo { modifier_pairs, key_vk }
+                TapKind::KeyCombo {
+                    modifier_pairs,
+                    key_vk,
+                }
             }
         };
 
@@ -294,10 +381,8 @@ pub fn install_multi_tap_hook(
         patterns: Mutex::new(patterns),
     });
 
-    let hook = unsafe {
-        SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_hook_proc), None, 0)
-    }
-    .map_err(|e| MstError::Injection(format!("Failed to install keyboard hook: {e}")))?;
+    let hook = unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_hook_proc), None, 0) }
+        .map_err(|e| MstError::Injection(format!("Failed to install keyboard hook: {e}")))?;
 
     log::debug!("Low-level keyboard hook installed: {:?}", hook);
     Ok(())

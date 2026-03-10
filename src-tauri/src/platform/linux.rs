@@ -435,7 +435,7 @@ pub fn install_multi_tap_hook(configs: Vec<super::MultiTapConfig>) -> Result<(),
                 0,
                 &mut clients.clone() as *mut c_ulong,
                 1 as c_int,
-                &mut (range as *mut x11::xrecord::XRecordRange),
+                &mut range,
                 1 as c_int,
             );
 

@@ -142,10 +142,6 @@ pub fn install_multi_tap_hook(configs: Vec<MultiTapConfig>) -> Result<(), MstErr
     }
     #[cfg(target_os = "macos")]
     {
-        let _ = configs;
-        log::warn!("Multi-tap keyboard hooks not yet implemented on macOS");
-        Err(MstError::Injection(
-            "Multi-tap hotkeys require a single-tap shortcut on macOS".into(),
-        ))
+        macos::install_multi_tap_hook(configs)
     }
 }

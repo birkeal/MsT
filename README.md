@@ -10,12 +10,13 @@ Ms. T is an open-source, cross-platform translation tool that lives in your syst
 
 ## Features
 
-- Global hotkey activation (configurable, default `Ctrl+Alt+T`)
+- Global hotkey activation (configurable, default double-tap `Ctrl`/`Cmd`)
 - Two translation modes:
   - **Simple** -- fast dictionary-style lookups via REST API (default: MyMemory, free, no key required)
   - **AI** -- full sentence/paragraph translation via LLM APIs (OpenAI, Anthropic, Google Gemini)
 - Text injection into the previously focused application via clipboard paste
-- System tray with Show/Hide and Quit
+- Settings UI accessible from the system tray (all options, hotkey capture, autostart toggle)
+- System tray with Show/Hide, Settings, and Quit
 - Cross-platform (Windows, Linux, macOS)
 
 ## Getting started
@@ -53,7 +54,7 @@ Installers are produced in `src-tauri/target/release/bundle/`.
 
 Launch the executable. Ms. T starts minimized in the system tray.
 
-Press `Ctrl+Alt+T` (or your configured hotkey) to open the translation bar, type your text, and press Enter.
+Press `Ctrl+Ctrl` (double-tap Ctrl/Cmd, or your configured hotkey) to open the translation bar, type your text, and press Enter.
 
 Use `--debug` to write diagnostic logs to `mst-debug.log` next to the executable:
 
@@ -63,21 +64,18 @@ mst.exe --debug
 
 ### Autostart
 
-To register Ms. T for automatic startup with the OS:
+Toggle autostart from the Settings UI (right-click the tray icon → Settings), or via the command line:
 
 ```bash
-mst.exe --autostart=true
+mst.exe --autostart=true   # enable
+mst.exe --autostart=false  # disable
 ```
 
-To remove from autostart:
-
-```bash
-mst.exe --autostart=false
-```
-
-The application will configure autostart and exit immediately.
+The command-line variant configures autostart and exits immediately.
 
 ## Configuration
+
+All settings can be configured through the Settings UI (right-click the tray icon → Settings). Changes are saved automatically.
 
 The config file is created automatically on first launch at:
 
@@ -96,8 +94,8 @@ The config file is created automatically on first launch at:
 | `api_key` | string or null | `null` | API key (required for AI mode) |
 | `model` | string or null | `null` | Model name (required for AI mode) |
 | `prompt` | string or null | `null` | Custom AI prompt template (use `{text}` and `{target}` placeholders) |
-| `hotkey` | string | `"CmdOrCtrl+Alt+T"` | Global hotkey to toggle the window |
-| `selection_hotkey` | string or null | `"CmdOrCtrl+C+C"` | Hotkey to translate selected text (null to disable) |
+| `hotkey` | string | `"CmdOrCtrl+CmdOrCtrl"` | Global hotkey to toggle the window |
+| `selection_hotkey` | string or null | `"CmdOrCtrl+CmdOrCtrl"` | Hotkey to translate selected text (null to disable) |
 | `hotkey_tap_interval_ms` | number | `300` | Max interval in ms between taps for multi-tap hotkeys |
 | `default_source_language` | string | `"de"` | Source language code |
 | `default_target_language` | string | `"en"` | Target language code |
@@ -189,13 +187,11 @@ Ready-to-use example configurations are in the `example-configs/` directory. Cop
 
 ### Translate selected text
 
-Select text in any application, then press the selection hotkey (default: `Ctrl+C` twice). Ms. T will capture the selection, pre-fill the translation bar, and auto-translate.
+Select text in any application, then press the selection hotkey (default: double-tap `Ctrl`/`Cmd`). Ms. T will capture the selection, pre-fill the translation bar, and auto-translate.
 
 If `selection_hotkey` is set to the same value as `hotkey`, Ms. T will auto-detect: it tries to capture selected text first, and falls back to an empty translation bar if nothing is selected.
 
 ## Todo
-
-[] Enhance UI
 
 ## License
 

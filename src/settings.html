@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ms. T - Settings</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <div id="settings-container">
+    <h1>Settings</h1>
+
+    <section>
+      <h2>General</h2>
+
+      <div class="field">
+        <label for="source-language">Source Language</label>
+        <select id="source-language">
+          <option value="de">DE</option>
+          <option value="en">EN</option>
+          <option value="es">ES</option>
+          <option value="fr">FR</option>
+          <option value="it">IT</option>
+          <option value="ja">JA</option>
+          <option value="ko">KO</option>
+          <option value="nl">NL</option>
+          <option value="pl">PL</option>
+          <option value="pt">PT</option>
+          <option value="ru">RU</option>
+          <option value="zh">ZH</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="target-language">Target Language</label>
+        <select id="target-language">
+          <option value="de">DE</option>
+          <option value="en">EN</option>
+          <option value="es">ES</option>
+          <option value="fr">FR</option>
+          <option value="it">IT</option>
+          <option value="ja">JA</option>
+          <option value="ko">KO</option>
+          <option value="nl">NL</option>
+          <option value="pl">PL</option>
+          <option value="pt">PT</option>
+          <option value="ru">RU</option>
+          <option value="zh">ZH</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="disable-fullscreen">Disable when Fullscreen</label>
+        <label class="toggle">
+          <input type="checkbox" id="disable-fullscreen">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="field">
+        <label for="autostart">Launch at Startup</label>
+        <label class="toggle">
+          <input type="checkbox" id="autostart">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="field">
+        <label for="injection-delay">Injection Delay (ms)</label>
+        <input type="number" id="injection-delay" min="0" max="2000" step="10">
+      </div>
+    </section>
+
+    <section>
+      <h2>Hotkeys</h2>
+      <p class="hint" id="hotkey-restart-notice" style="display:none;">Restart the app for hotkey changes to take effect.</p>
+
+      <div class="field">
+        <label>Main Hotkey</label>
+        <div class="hotkey-capture">
+          <span class="hotkey-display" id="hotkey-display">—</span>
+          <button class="btn" id="hotkey-btn">Record</button>
+          <button class="btn btn-icon" id="hotkey-clear" title="Reset to default"><img src="img/trash.svg" alt="Reset"></button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Selection Hotkey</label>
+        <div class="hotkey-capture">
+          <span class="hotkey-display" id="selection-hotkey-display">—</span>
+          <button class="btn" id="selection-hotkey-btn">Record</button>
+          <button class="btn btn-icon" id="selection-hotkey-clear" title="Clear"><img src="img/trash.svg" alt="Clear"></button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="tap-interval">Tap Interval (ms)</label>
+        <input type="number" id="tap-interval" min="100" max="1000" step="50">
+      </div>
+    </section>
+
+    <section>
+      <h2>Translation Service</h2>
+
+      <div class="field">
+        <label for="translation-type">Translation Type</label>
+        <select id="translation-type">
+          <option value="simple">Simple</option>
+          <option value="ai">AI</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="service-url">Service URL</label>
+        <input type="text" id="service-url" placeholder="https://api.mymemory.translated.net/get">
+      </div>
+    </section>
+
+    <section id="ai-settings-section">
+      <h2>AI Settings</h2>
+
+      <div class="field">
+        <label for="api-key">API Key</label>
+        <input type="password" id="api-key" placeholder="Enter API key...">
+      </div>
+
+      <div class="field">
+        <label for="model">Model</label>
+        <input type="text" id="model" placeholder="e.g. gpt-4o, claude-sonnet-4-20250514">
+      </div>
+
+      <div class="field">
+        <label for="prompt">Custom Prompt</label>
+        <textarea id="prompt" rows="5" placeholder="Use {text} and {target} as placeholders..."></textarea>
+      </div>
+    </section>
+  </div>
+  <script src="js/settings.js"></script>
+</body>
+</html>

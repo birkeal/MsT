@@ -52,7 +52,7 @@ pub fn simulate_copy() -> Result<(), MstError> {
         .key(Key::Meta, Direction::Press)
         .map_err(|e| MstError::Injection(format!("Failed to simulate copy: {e}")))?;
     enigo
-        .key(Key::Unicode('c'), Direction::Click)
+        .raw(0x08, Direction::Click) // macOS keycode for 'c'
         .map_err(|e| MstError::Injection(format!("Failed to simulate copy: {e}")))?;
     enigo
         .key(Key::Meta, Direction::Release)
@@ -67,7 +67,7 @@ pub fn simulate_paste() -> Result<(), MstError> {
         .key(Key::Meta, Direction::Press)
         .map_err(|e| MstError::Injection(format!("Failed to simulate paste: {e}")))?;
     enigo
-        .key(Key::Unicode('v'), Direction::Click)
+        .raw(0x09, Direction::Click) // macOS keycode for 'v'
         .map_err(|e| MstError::Injection(format!("Failed to simulate paste: {e}")))?;
     enigo
         .key(Key::Meta, Direction::Release)

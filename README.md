@@ -8,7 +8,7 @@ Ms. T never misses a translation!
 
 Ms. T is an open-source, cross-platform translation tool that lives in your system tray. Summon it with a global hotkey, type your text, and inject the translation directly into any application.
 
-Workflow without Ms. T:
+Workflow **without** Ms. T:
 1. Open browser
 2. Navigate to translation service
 3. Enter text phrase
@@ -17,7 +17,7 @@ Workflow without Ms. T:
 6. Go back to your document
 7. Insert translation
 
-Workflow WITH Ms. T:
+Workflow **WITH** Ms. T:
 1. Press hotkey (e.g. double tap CmdOrCtrl)
 2. Enter text phrase + hit ENTER
 3. Select translation + hit ENTER (Ms. T automatically injects translation at your current cursor position)

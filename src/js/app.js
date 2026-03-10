@@ -35,8 +35,8 @@ currentWindow.onFocusChanged(({ payload: focused }) => {
       lastTranslatedText = '';
     }
     input.focus();
+    resizeToFitContent();
   } else {
-    currentWindow.setSize(new window.__TAURI__.window.LogicalSize(600, 72));
     currentWindow.hide();
   }
 });
@@ -103,6 +103,7 @@ async function doTranslate() {
 
   langSelect.style.display = 'none';
   loadingIndicator.classList.add('active');
+  resizeToFitContent();
 
   try {
     const suggestions = await invoke('translate', {
@@ -150,23 +151,14 @@ function renderResults() {
 
 async function selectResult(item) {
   await invoke('inject_text', { text: item.text });
-  // Reset window height after injection
-  await currentWindow.setSize(new window.__TAURI__.window.LogicalSize(600, 72));
 }
 
 async function resizeToFitContent() {
-  // Expand the window first so the WebView lays out content at full size,
-  // then measure the actual modal height and shrink to fit.
   const maxHeight = 400;
   const LogicalSize = window.__TAURI__.window.LogicalSize;
-  await currentWindow.setSize(new LogicalSize(600, maxHeight));
-
-  // Wait for the browser to reflow into the expanded space
-  await new Promise((r) => requestAnimationFrame(r));
-  await new Promise((r) => requestAnimationFrame(r));
-
-  const modalHeight = document.getElementById('modal').offsetHeight + 24;
-  await currentWindow.setSize(new LogicalSize(600, Math.min(modalHeight, maxHeight)));
+  const modal = document.getElementById('modal');
+  const contentHeight = modal.scrollHeight;
+  await currentWindow.setSize(new LogicalSize(600, Math.min(contentHeight, maxHeight)));
 }
 
 function escapeHtml(str) {

@@ -15,8 +15,27 @@ use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut}
 
 use tauri_plugin_autostart::MacosLauncher;
 
+use std::sync::{Mutex, OnceLock};
+
 use config::AppConfig;
 use platform::{MultiTapConfig, MultiTapKind, PlatformState};
+
+/// Cached center position so repeated show/hide cycles don't drift (macOS issue).
+static CACHED_CENTER: OnceLock<Mutex<Option<tauri::PhysicalPosition<i32>>>> = OnceLock::new();
+
+/// Center the window once and cache the position; reuse on subsequent calls.
+fn center_window(window: &tauri::WebviewWindow) {
+    let cache = CACHED_CENTER.get_or_init(|| Mutex::new(None));
+    let mut pos = cache.lock().unwrap();
+    if let Some(cached) = *pos {
+        let _ = window.set_position(cached);
+    } else {
+        let _ = window.center();
+        if let Ok(p) = window.outer_position() {
+            *pos = Some(p);
+        }
+    }
+}
 
 /// Result of parsing a hotkey string.
 enum ParsedHotkey {
@@ -292,7 +311,7 @@ fn handle_main_hotkey(app_handle: &tauri::AppHandle, auto_detect_selection: bool
         let _ = platform::save_foreground_window(&platform_state);
 
         if let Some(window) = app_handle.get_webview_window("main") {
-            let _ = window.center();
+            center_window(&window);
             let _ = window.show();
             let _ = window.set_focus();
         }
@@ -327,7 +346,7 @@ fn show_clipboard_as_selection(app_handle: &tauri::AppHandle) {
     if text.is_empty() {
         log::debug!("Clipboard empty — showing empty translation bar");
         if let Some(window) = app_handle.get_webview_window("main") {
-            let _ = window.center();
+            center_window(&window);
             let _ = window.show();
             let _ = window.set_focus();
         }
@@ -372,7 +391,7 @@ fn capture_and_show_selection(app_handle: &tauri::AppHandle, delay_ms: u64) {
     if selected_text.is_empty() || selected_text == prev_clipboard {
         log::debug!("No selection captured — showing empty translation bar");
         if let Some(window) = app_handle.get_webview_window("main") {
-            let _ = window.center();
+            center_window(&window);
             let _ = window.show();
             let _ = window.set_focus();
         }

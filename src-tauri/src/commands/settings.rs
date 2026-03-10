@@ -33,7 +33,7 @@ pub fn open_settings_window(app: tauri::AppHandle) -> Result<(), MstError> {
     .center()
     .focused(true)
     .build()
-    .map_err(|e| MstError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+    .map_err(|e| MstError::Io(std::io::Error::other(e.to_string())))?;
 
     Ok(())
 }
@@ -43,7 +43,7 @@ pub fn get_autostart(app: tauri::AppHandle) -> Result<bool, MstError> {
     use tauri_plugin_autostart::ManagerExt;
     app.autolaunch()
         .is_enabled()
-        .map_err(|e| MstError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))
+        .map_err(|e| MstError::Io(std::io::Error::other(e.to_string())))
 }
 
 #[tauri::command]
@@ -55,5 +55,5 @@ pub fn set_autostart(app: tauri::AppHandle, enabled: bool) -> Result<(), MstErro
     } else {
         autolaunch.disable()
     };
-    result.map_err(|e| MstError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))
+    result.map_err(|e| MstError::Io(std::io::Error::other(e.to_string())))
 }

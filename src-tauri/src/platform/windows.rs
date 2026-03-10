@@ -12,8 +12,8 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     GetAsyncKeyState, SendInput, INPUT, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, VIRTUAL_KEY,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    CallNextHookEx, GetDesktopWindow, GetForegroundWindow, GetWindowRect, SetForegroundWindow,
-    SetWindowsHookExW, KBDLLHOOKSTRUCT, WH_KEYBOARD_LL,
+    CallNextHookEx, GetClassNameW, GetDesktopWindow, GetForegroundWindow, GetWindowRect,
+    SetForegroundWindow, SetWindowsHookExW, KBDLLHOOKSTRUCT, WH_KEYBOARD_LL,
 };
 
 const VK_CONTROL: VIRTUAL_KEY = VIRTUAL_KEY(0x11);
@@ -107,6 +107,17 @@ pub fn is_fullscreen_app_active() -> bool {
         let hwnd = GetForegroundWindow();
         if hwnd.0.is_null() || hwnd == GetDesktopWindow() {
             return false;
+        }
+
+        // Exclude Windows shell windows (desktop, taskbar) that cover
+        // the full monitor but aren't actual fullscreen applications.
+        let mut class_name = [0u16; 64];
+        let len = GetClassNameW(hwnd, &mut class_name);
+        if len > 0 {
+            let name = String::from_utf16_lossy(&class_name[..len as usize]);
+            if matches!(name.as_str(), "Progman" | "WorkerW" | "Shell_TrayWnd") {
+                return false;
+            }
         }
 
         let mut window_rect = RECT::default();

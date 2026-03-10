@@ -64,6 +64,9 @@ pub fn run(autostart: Option<bool>) {
             commands::injection::inject_text,
             commands::settings::load_settings,
             commands::settings::save_settings,
+            commands::settings::open_settings_window,
+            commands::settings::get_autostart,
+            commands::settings::set_autostart,
         ])
         .setup(move |app| {
             log::debug!("Running Tauri setup");
@@ -86,11 +89,14 @@ pub fn run(autostart: Option<bool>) {
             // Build tray menu
             let show_hide = MenuItemBuilder::with_id("show_hide", "Show/Hide")
                 .build(app)?;
+            let settings = MenuItemBuilder::with_id("settings", "Settings")
+                .build(app)?;
             let quit = MenuItemBuilder::with_id("quit", "Quit")
                 .build(app)?;
 
             let menu = MenuBuilder::new(app)
                 .item(&show_hide)
+                .item(&settings)
                 .separator()
                 .item(&quit)
                 .build()?;
@@ -111,6 +117,11 @@ pub fn run(autostart: Option<bool>) {
                                 let _ = window.show();
                                 let _ = window.set_focus();
                             }
+                        }
+                    }
+                    "settings" => {
+                        if let Err(e) = commands::settings::open_settings_window(app.clone()) {
+                            log::error!("Failed to open settings: {e}");
                         }
                     }
                     "quit" => {
@@ -483,7 +494,14 @@ fn is_modifier(token: &str) -> bool {
 /// Map a modifier token to its canonical name used by the platform hook.
 fn modifier_canonical_name(token: &str) -> &'static str {
     match token.to_lowercase().as_str() {
-        "ctrl" | "control" | "cmdorctrl" => "control",
+        "ctrl" | "control" => "control",
+        "cmdorctrl" => {
+            if cfg!(target_os = "macos") {
+                "super"
+            } else {
+                "control"
+            }
+        }
         "alt" | "option" => "alt",
         "shift" => "shift",
         "super" | "cmd" | "command" | "meta" => "super",

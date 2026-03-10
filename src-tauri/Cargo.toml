@@ -35,6 +35,8 @@ enigo = "0.3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 enigo = "0.3"
+core-graphics = "0.24"
+core-foundation = "0.10"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

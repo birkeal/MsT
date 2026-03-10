@@ -387,7 +387,11 @@ fn capture_and_show_selection(app_handle: &tauri::AppHandle) {
     let platform_state = app_handle.state::<PlatformState>();
     let _ = platform::save_foreground_window(&platform_state);
 
-    let delay_ms = app_handle.state::<RwLock<AppConfig>>().read().unwrap().injection_delay_ms;
+    let delay_ms = app_handle
+        .state::<RwLock<AppConfig>>()
+        .read()
+        .unwrap()
+        .injection_delay_ms;
 
     // Save current clipboard
     let prev_clipboard = app_handle.clipboard().read_text().unwrap_or_default();

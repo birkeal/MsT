@@ -417,7 +417,7 @@ pub fn install_multi_tap_hook(configs: Vec<super::MultiTapConfig>) -> Result<(),
             }
 
             // Create XRecordRange for KeyPress and KeyRelease events
-            let range = x11::xrecord::XRecordAllocRange();
+            let mut range = x11::xrecord::XRecordAllocRange();
             if range.is_null() {
                 log::error!("Failed to allocate XRecord range");
                 x11::xlib::XCloseDisplay(control_display);

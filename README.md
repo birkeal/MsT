@@ -39,16 +39,20 @@ or even shorter alternative:
 
 ## Getting started
 
-### Prerequisites
+### Download
 
+Find our latest releases here:
+https://github.com/birkeal/MsT/releases
+
+### Build
+
+**Prerequisites**
 - [Rust](https://rustup.rs/) (stable)
 - [Node.js](https://nodejs.org/) 18+
 - Platform-specific dependencies:
   - **Windows:** MSVC build tools
   - **Linux:** `libwebkit2gtk-4.1-dev build-essential libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev`
   - **macOS:** Xcode command-line tools
-
-### Build
 
 Build the standalone executable (no Node.js required):
 

@@ -58,8 +58,8 @@ fn restore_clipboard(app_handle: &AppHandle, content: ClipboardContent) {
 #[tauri::command]
 pub async fn inject_text(text: String, app_handle: AppHandle) -> Result<(), MstError> {
     let platform_state = app_handle.state::<PlatformState>();
-    let config = app_handle.state::<AppConfig>();
-    let delay = Duration::from_millis(config.injection_delay_ms);
+    let config = app_handle.state::<std::sync::RwLock<AppConfig>>();
+    let delay = Duration::from_millis(config.read().unwrap().injection_delay_ms);
 
     // Save current clipboard content (text or image)
     let prev_clipboard = save_clipboard(&app_handle);

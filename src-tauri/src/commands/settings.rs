@@ -1,3 +1,5 @@
+use std::sync::RwLock;
+
 use tauri::Manager;
 
 use crate::config::AppConfig;
@@ -9,8 +11,12 @@ pub fn load_settings() -> Result<AppConfig, MstError> {
 }
 
 #[tauri::command]
-pub fn save_settings(config: AppConfig) -> Result<(), MstError> {
-    config.save()
+pub fn save_settings(app: tauri::AppHandle, config: AppConfig) -> Result<(), MstError> {
+    config.save()?;
+    let state = app.state::<RwLock<AppConfig>>();
+    let mut current = state.write().unwrap();
+    *current = config;
+    Ok(())
 }
 
 #[tauri::command]

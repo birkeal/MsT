@@ -15,7 +15,7 @@ use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut}
 
 use tauri_plugin_autostart::MacosLauncher;
 
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Mutex, OnceLock, RwLock};
 
 use config::AppConfig;
 use platform::{MultiTapConfig, MultiTapKind, PlatformState};
@@ -83,7 +83,7 @@ pub fn run(autostart: Option<bool>) {
             }
         }))
         .manage(PlatformState::new())
-        .manage(config)
+        .manage(RwLock::new(config))
         .invoke_handler(tauri::generate_handler![
             commands::translate::translate,
             commands::injection::inject_text,
@@ -159,7 +159,8 @@ pub fn run(autostart: Option<bool>) {
             log::debug!("Tray icon created");
 
             // Parse hotkey config
-            let hotkey_config = app.state::<AppConfig>();
+            let hotkey_config = app.state::<RwLock<AppConfig>>();
+            let hotkey_config = hotkey_config.read().unwrap();
             let parsed_main = match parse_hotkey(&hotkey_config.hotkey) {
                 Ok(p) => p,
                 Err(e) => {
@@ -171,7 +172,6 @@ pub fn run(autostart: Option<bool>) {
             };
 
             let tap_interval_ms = hotkey_config.hotkey_tap_interval_ms;
-            let delay_ms = hotkey_config.injection_delay_ms;
 
             // Parse selection hotkey (if configured)
             let parsed_selection = hotkey_config.selection_hotkey.as_ref().and_then(|sel_str| {
@@ -191,6 +191,7 @@ pub fn run(autostart: Option<bool>) {
             });
 
             let auto_detect_selection = hotkey_config.selection_hotkey.as_deref() == Some(&hotkey_config.hotkey);
+            drop(hotkey_config);
 
             // Collect multi-tap patterns for the platform hook
             let mut multi_tap_configs: Vec<MultiTapConfig> = Vec::new();
@@ -204,7 +205,7 @@ pub fn run(autostart: Option<bool>) {
                         if event.state != tauri_plugin_global_shortcut::ShortcutState::Pressed {
                             return;
                         }
-                        handle_main_hotkey(&app_handle, auto_detect_selection, delay_ms);
+                        handle_main_hotkey(&app_handle);
                     })?;
                 }
                 ParsedHotkey::MultiTapCombo { modifiers, key, taps } => {
@@ -212,7 +213,7 @@ pub fn run(autostart: Option<bool>) {
                     log::debug!("Registering multi-tap combo hook: {:?}+{:?} x{} (auto-detect selection: {})", modifiers, key, taps, auto_detect_selection);
                     let kind = MultiTapKind::KeyCombo { modifiers, key };
                     multi_tap_configs.push((kind, taps, tap_interval_ms, Box::new(move || {
-                        handle_main_hotkey(&app_handle, auto_detect_selection, delay_ms);
+                        handle_main_hotkey(&app_handle);
                     })));
                 }
                 ParsedHotkey::ModifierTap { modifier, taps } => {
@@ -220,7 +221,7 @@ pub fn run(autostart: Option<bool>) {
                     log::debug!("Registering modifier-tap hook: {} x{} (auto-detect selection: {})", modifier, taps, auto_detect_selection);
                     let kind = MultiTapKind::ModifierOnly { modifier };
                     multi_tap_configs.push((kind, taps, tap_interval_ms, Box::new(move || {
-                        handle_main_hotkey(&app_handle, auto_detect_selection, delay_ms);
+                        handle_main_hotkey(&app_handle);
                     })));
                 }
             }
@@ -235,15 +236,16 @@ pub fn run(autostart: Option<bool>) {
                             if event.state != tauri_plugin_global_shortcut::ShortcutState::Pressed {
                                 return;
                             }
-                            let config = app_handle.state::<AppConfig>();
+                            let config = app_handle.state::<RwLock<AppConfig>>();
+                            let config = config.read().unwrap();
                             if config.disable_when_fullscreen && platform::is_fullscreen_app_active() {
                                 log::debug!("Fullscreen app detected — suppressing selection hotkey");
                                 return;
                             }
+                            drop(config);
                             let handle = app_handle.clone();
-                            let d = delay_ms;
                             std::thread::spawn(move || {
-                                capture_and_show_selection(&handle, d);
+                                capture_and_show_selection(&handle);
                             });
                         })?;
                     }
@@ -259,17 +261,18 @@ pub fn run(autostart: Option<bool>) {
                         let app_handle = app.handle().clone();
                         log::debug!("Registering modifier-tap selection hook: {} x{}", modifier, taps);
                         let kind = MultiTapKind::ModifierOnly { modifier };
-                        let d = delay_ms;
                         multi_tap_configs.push((kind, taps, tap_interval_ms, Box::new(move || {
                             // Modifier-only doesn't copy — need to simulate Ctrl+C
-                            let config = app_handle.state::<AppConfig>();
+                            let config = app_handle.state::<RwLock<AppConfig>>();
+                            let config = config.read().unwrap();
                             if config.disable_when_fullscreen && platform::is_fullscreen_app_active() {
                                 log::debug!("Fullscreen app detected — suppressing selection hotkey");
                                 return;
                             }
+                            drop(config);
                             let handle = app_handle.clone();
                             std::thread::spawn(move || {
-                                capture_and_show_selection(&handle, d);
+                                capture_and_show_selection(&handle);
                             });
                         })));
                     }
@@ -293,7 +296,7 @@ pub fn run(autostart: Option<bool>) {
 }
 
 /// Handle the main hotkey activation (toggle window, optionally auto-detect selection).
-fn handle_main_hotkey(app_handle: &tauri::AppHandle, auto_detect_selection: bool, delay_ms: u64) {
+fn handle_main_hotkey(app_handle: &tauri::AppHandle) {
     if let Some(window) = app_handle.get_webview_window("main") {
         if window.is_visible().unwrap_or(false) {
             let _ = window.hide();
@@ -301,16 +304,19 @@ fn handle_main_hotkey(app_handle: &tauri::AppHandle, auto_detect_selection: bool
         }
     }
 
-    let config = app_handle.state::<AppConfig>();
+    let config = app_handle.state::<RwLock<AppConfig>>();
+    let config = config.read().unwrap();
     if config.disable_when_fullscreen && platform::is_fullscreen_app_active() {
         log::debug!("Fullscreen app detected — suppressing hotkey");
         return;
     }
+    let auto_detect_selection = config.selection_hotkey.as_deref() == Some(&config.hotkey);
+    drop(config);
 
     if auto_detect_selection {
         let handle = app_handle.clone();
         std::thread::spawn(move || {
-            capture_and_show_selection(&handle, delay_ms);
+            capture_and_show_selection(&handle);
         });
     } else {
         let handle = app_handle.clone();
@@ -330,7 +336,8 @@ fn handle_main_hotkey(app_handle: &tauri::AppHandle, auto_detect_selection: bool
 /// Handle selection hotkey from a multi-tap hook.
 /// The user's own keypresses already performed the copy, so just read the clipboard.
 fn handle_selection_hotkey_from_hook(app_handle: &tauri::AppHandle) {
-    let config = app_handle.state::<AppConfig>();
+    let config = app_handle.state::<RwLock<AppConfig>>();
+    let config = config.read().unwrap();
     if config.disable_when_fullscreen && platform::is_fullscreen_app_active() {
         log::debug!("Fullscreen app detected — suppressing selection hotkey");
         return;
@@ -351,6 +358,7 @@ fn show_clipboard_as_selection(app_handle: &tauri::AppHandle) {
     std::thread::sleep(std::time::Duration::from_millis(50));
 
     let text = app_handle.clipboard().read_text().unwrap_or_default();
+    let text = text.trim();
 
     if text.is_empty() {
         log::debug!("Clipboard empty — showing empty translation bar");
@@ -369,15 +377,17 @@ fn show_clipboard_as_selection(app_handle: &tauri::AppHandle) {
         let _ = window.show();
         let _ = window.set_focus();
     }
-    let _ = app_handle.emit("selection-captured", &text);
+    let _ = app_handle.emit("selection-captured", text);
 }
 
 /// Capture selected text from the foreground application and show the translation bar.
 /// For multi-tap key combos (e.g., Ctrl+C+C), the user's own keypresses already
 /// performed the copy, so we just read the clipboard directly.
-fn capture_and_show_selection(app_handle: &tauri::AppHandle, delay_ms: u64) {
+fn capture_and_show_selection(app_handle: &tauri::AppHandle) {
     let platform_state = app_handle.state::<PlatformState>();
     let _ = platform::save_foreground_window(&platform_state);
+
+    let delay_ms = app_handle.state::<RwLock<AppConfig>>().read().unwrap().injection_delay_ms;
 
     // Save current clipboard
     let prev_clipboard = app_handle.clipboard().read_text().unwrap_or_default();
@@ -392,12 +402,13 @@ fn capture_and_show_selection(app_handle: &tauri::AppHandle, delay_ms: u64) {
 
     // Read clipboard — this should now contain the selected text
     let selected_text = app_handle.clipboard().read_text().unwrap_or_default();
+    let selected_text = selected_text.trim().to_string();
 
     // Restore original clipboard
     let _ = app_handle.clipboard().write_text(&prev_clipboard);
 
     // Check if we actually captured something new
-    if selected_text.is_empty() || selected_text == prev_clipboard {
+    if selected_text.is_empty() || selected_text == prev_clipboard.trim() {
         log::debug!("No selection captured — showing empty translation bar");
         if let Some(window) = app_handle.get_webview_window("main") {
             center_window(&window);

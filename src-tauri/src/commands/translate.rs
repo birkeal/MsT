@@ -1,3 +1,5 @@
+use std::sync::RwLock;
+
 use serde::Serialize;
 use tauri::State;
 
@@ -16,8 +18,9 @@ pub async fn translate(
     text: String,
     source: String,
     target: String,
-    config: State<'_, AppConfig>,
+    config: State<'_, RwLock<AppConfig>>,
 ) -> Result<Vec<TranslationSuggestion>, MstError> {
+    let config = config.read().unwrap().clone();
     let result = match translation::translate(&config, &text, &source, &target).await {
         Ok(r) => r,
         Err(e) => {

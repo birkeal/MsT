@@ -198,9 +198,9 @@ fn process_key_event(keysym: u32, is_down: bool, is_up: bool) {
                     if is_down && keysym == key_keysym && !pattern.key_is_down {
                         pattern.key_is_down = true;
                         if let Ok(state) = globals.modifier_state.try_lock() {
-                            let all_held = modifier_pairs.iter().all(|(left, right)| {
-                                state.contains(left) || state.contains(right)
-                            });
+                            let all_held = modifier_pairs
+                                .iter()
+                                .all(|(left, right)| state.contains(left) || state.contains(right));
                             if all_held {
                                 count_tap(pattern);
                             }
@@ -391,8 +391,7 @@ pub fn install_multi_tap_hook(configs: Vec<super::MultiTapConfig>) -> Result<(),
     let mut keysym_table = vec![0u32; 256];
     for keycode in 8u32..256 {
         #[allow(deprecated)]
-        let keysym =
-            unsafe { x11::xlib::XKeycodeToKeysym(test_display, keycode as c_uchar, 0) };
+        let keysym = unsafe { x11::xlib::XKeycodeToKeysym(test_display, keycode as c_uchar, 0) };
         keysym_table[keycode as usize] = keysym as u32;
     }
     unsafe { x11::xlib::XCloseDisplay(test_display) };

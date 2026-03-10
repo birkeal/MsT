@@ -144,8 +144,13 @@ struct TapPattern {
 }
 
 enum TapKind {
-    ModifierOnly { flags_mask: u64 },
-    KeyCombo { modifier_flags_masks: Vec<u64>, key_code: u16 },
+    ModifierOnly {
+        flags_mask: u64,
+    },
+    KeyCombo {
+        modifier_flags_masks: Vec<u64>,
+        key_code: u16,
+    },
 }
 
 struct HookGlobals {
@@ -181,12 +186,7 @@ fn count_tap(pattern: &mut TapPattern) {
     }
 }
 
-fn process_key_event_macos(
-    patterns: &mut [TapPattern],
-    event_type: u32,
-    keycode: u16,
-    flags: u64,
-) {
+fn process_key_event_macos(patterns: &mut [TapPattern], event_type: u32, keycode: u16, flags: u64) {
     for pattern in patterns.iter_mut() {
         match &pattern.kind {
             TapKind::ModifierOnly { flags_mask } => {
@@ -210,15 +210,17 @@ fn process_key_event_macos(
                     pattern.other_key_since_down = true;
                 }
             }
-            TapKind::KeyCombo { modifier_flags_masks, key_code } => {
+            TapKind::KeyCombo {
+                modifier_flags_masks,
+                key_code,
+            } => {
                 let key_code = *key_code;
                 let modifier_flags_masks = modifier_flags_masks.clone();
 
-                if event_type == K_CG_EVENT_KEY_DOWN && keycode == key_code && !pattern.key_is_down {
+                if event_type == K_CG_EVENT_KEY_DOWN && keycode == key_code && !pattern.key_is_down
+                {
                     pattern.key_is_down = true;
-                    let all_held = modifier_flags_masks
-                        .iter()
-                        .all(|mask| (flags & mask) != 0);
+                    let all_held = modifier_flags_masks.iter().all(|mask| (flags & mask) != 0);
                     if all_held {
                         count_tap(pattern);
                     }
@@ -356,7 +358,10 @@ pub fn install_multi_tap_hook(configs: Vec<super::MultiTapConfig>) -> Result<(),
                     .iter()
                     .filter_map(|m| modifier_name_to_flags_mask(m))
                     .collect();
-                TapKind::KeyCombo { modifier_flags_masks, key_code }
+                TapKind::KeyCombo {
+                    modifier_flags_masks,
+                    key_code,
+                }
             }
         };
 
@@ -382,9 +387,8 @@ pub fn install_multi_tap_hook(configs: Vec<super::MultiTapConfig>) -> Result<(),
         .name("macos-keyboard-hook".into())
         .spawn(move || {
             unsafe {
-                let event_mask = CG_EVENT_MASK_KEY_DOWN
-                    | CG_EVENT_MASK_KEY_UP
-                    | CG_EVENT_MASK_FLAGS_CHANGED;
+                let event_mask =
+                    CG_EVENT_MASK_KEY_DOWN | CG_EVENT_MASK_KEY_UP | CG_EVENT_MASK_FLAGS_CHANGED;
 
                 let tap = CGEventTapCreate(
                     K_CG_SESSION_EVENT_TAP,
@@ -416,11 +420,7 @@ pub fn install_multi_tap_hook(configs: Vec<super::MultiTapConfig>) -> Result<(),
                     }
                 }
 
-                let run_loop_source = CFMachPortCreateRunLoopSource(
-                    std::ptr::null(),
-                    tap,
-                    0,
-                );
+                let run_loop_source = CFMachPortCreateRunLoopSource(std::ptr::null(), tap, 0);
 
                 if run_loop_source.is_null() {
                     log::error!("Failed to create run loop source for event tap");

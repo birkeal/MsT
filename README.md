@@ -4,9 +4,27 @@
 
 # Ms. T
 
-Never misses a translation!
+Ms. T never misses a translation!
 
 Ms. T is an open-source, cross-platform translation tool that lives in your system tray. Summon it with a global hotkey, type your text, and inject the translation directly into any application.
+
+Workflow without Ms. T:
+1. Open browser
+2. Navigate to translation service
+3. Enter text phrase
+4. Translate
+5. Copy or remember translation
+6. Go back to your document
+7. Insert translation
+
+Workflow WITH Ms. T:
+1. Press hotkey (e.g. double tap CmdOrCtrl)
+2. Enter text phrase + hit ENTER
+3. Select translation + hit ENTER (Ms. T automatically injects translation at your current cursor position)
+
+or even shorter alternative:
+1. Select text you want to translate & press hotkey (Ms. T automatically copies the text and translates it)
+2. Select translation + hit ENTER (Ms. T automatically injects translation at your current cursor position)
 
 ## Features
 
@@ -61,6 +79,16 @@ Use `--debug` to write diagnostic logs to `mst-debug.log` next to the executable
 ```bash
 mst.exe --debug
 ```
+
+### macOS notes
+
+**Gatekeeper:** Before opening Ms. T for the first time, clear the quarantine attribute:
+
+```bash
+xattr -cr mst.app
+```
+
+**Clipboard access:** On first launch, macOS will prompt you to allow Ms. T to access the clipboard. Grant this permission — it is required to inject translations into other applications via paste. You can manage this later in **System Settings → Privacy & Security → Paste from Other Apps** (or **Accessibility** on older macOS versions).
 
 ### Autostart
 

@@ -76,6 +76,12 @@ pub fn run(autostart: Option<bool>) {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
         .manage(PlatformState::new())
         .manage(config)
         .invoke_handler(tauri::generate_handler![
@@ -307,14 +313,17 @@ fn handle_main_hotkey(app_handle: &tauri::AppHandle, auto_detect_selection: bool
             capture_and_show_selection(&handle, delay_ms);
         });
     } else {
-        let platform_state = app_handle.state::<PlatformState>();
-        let _ = platform::save_foreground_window(&platform_state);
+        let handle = app_handle.clone();
+        std::thread::spawn(move || {
+            let platform_state = handle.state::<PlatformState>();
+            let _ = platform::save_foreground_window(&platform_state);
 
-        if let Some(window) = app_handle.get_webview_window("main") {
-            center_window(&window);
-            let _ = window.show();
-            let _ = window.set_focus();
-        }
+            if let Some(window) = handle.get_webview_window("main") {
+                center_window(&window);
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        });
     }
 }
 

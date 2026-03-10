@@ -3,6 +3,8 @@ use std::process::Command;
 use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
 
+use enigo::{Direction, Enigo, Key, Keyboard, Settings};
+
 use super::{MultiTapKind, PlatformState, WindowHandle};
 use crate::error::MstError;
 
@@ -44,23 +46,31 @@ pub fn restore_foreground_window(state: &PlatformState) -> Result<(), MstError> 
 }
 
 pub fn simulate_copy() -> Result<(), MstError> {
-    Command::new("osascript")
-        .args([
-            "-e",
-            "tell application \"System Events\" to keystroke \"c\" using command down",
-        ])
-        .output()
+    let mut enigo = Enigo::new(&Settings::default())
+        .map_err(|e| MstError::Injection(format!("Failed to init enigo: {e}")))?;
+    enigo
+        .key(Key::Meta, Direction::Press)
+        .map_err(|e| MstError::Injection(format!("Failed to simulate copy: {e}")))?;
+    enigo
+        .key(Key::Unicode('c'), Direction::Click)
+        .map_err(|e| MstError::Injection(format!("Failed to simulate copy: {e}")))?;
+    enigo
+        .key(Key::Meta, Direction::Release)
         .map_err(|e| MstError::Injection(format!("Failed to simulate copy: {e}")))?;
     Ok(())
 }
 
 pub fn simulate_paste() -> Result<(), MstError> {
-    Command::new("osascript")
-        .args([
-            "-e",
-            "tell application \"System Events\" to keystroke \"v\" using command down",
-        ])
-        .output()
+    let mut enigo = Enigo::new(&Settings::default())
+        .map_err(|e| MstError::Injection(format!("Failed to init enigo: {e}")))?;
+    enigo
+        .key(Key::Meta, Direction::Press)
+        .map_err(|e| MstError::Injection(format!("Failed to simulate paste: {e}")))?;
+    enigo
+        .key(Key::Unicode('v'), Direction::Click)
+        .map_err(|e| MstError::Injection(format!("Failed to simulate paste: {e}")))?;
+    enigo
+        .key(Key::Meta, Direction::Release)
         .map_err(|e| MstError::Injection(format!("Failed to simulate paste: {e}")))?;
     Ok(())
 }
